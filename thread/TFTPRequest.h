@@ -1,0 +1,4 @@
+#ifndef TFTPREQUEST_H
+#define TFTPREQUEST_H
+
+#endif // TFTPREQUEST_H

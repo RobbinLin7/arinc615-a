@@ -1,0 +1,14 @@
+<RCC>
+    <qresource prefix="/">
+        <file>Image/download1.png</file>
+        <file>Image/download2.png</file>
+        <file>Image/find.png</file>
+        <file>Image/Information.png</file>
+        <file>Image/setting.png</file>
+        <file>Image/upload.png</file>
+        <file>Image/exit.png</file>
+        <file>Image/autoConfig.png</file>
+        <file>Image/main.png</file>
+        <file>main.ico</file>
+    </qresource>
+</RCC>
