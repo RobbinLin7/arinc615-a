@@ -1,4 +1,4 @@
-#include "autoconfigwidget.h"
+﻿#include "autoconfigwidget.h"
 #include "ui_autoconfigwidget.h"
 
 #include <QPushButton>
@@ -30,6 +30,8 @@ AutoConfigWidget::AutoConfigWidget(QThreadPool* pool, QList<MyThread*> &threads,
     connect(ui->cancelOpBtn, &QPushButton::clicked, this, [=](){
         emit sendAutoConfigStatusMessage(QString(tr("退出自动化配置操作")), "default");
         emit(AutoConfigFinish());
+        fileName_used.clear();
+        path_number.clear();
         this->close();
     });
     ui->cfgInputBtn->hide();
@@ -186,10 +188,20 @@ void AutoConfigWidget::selectFiles()
         {
             //files.clear();
             QFileInfo info(fileNames.at(i));
+            if(path_number[info.absoluteFilePath()] == 0){
+                path_number[info.absoluteFilePath()] = fileName_used[info.fileName()]++;
+            }
 
+            if(path_number[info.absoluteFilePath()] != 0){
+                files += info.fileName() + QString("(%1)").arg(path_number[info.absoluteFilePath()]);
+            }
+            else{
+                files += info.fileName();
+            }
             //qDebug() << info.absolutePath();
             //qDebug() << info.baseName();
-            files += info.fileName();
+            //files += info.absolutePath() + info.baseName();
+            //files += info.fileName();
             files += i < fileNames.size() - 1 ? "\n" : "";
         }
 

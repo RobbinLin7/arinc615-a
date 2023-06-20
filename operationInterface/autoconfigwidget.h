@@ -1,4 +1,4 @@
-#ifndef AUTOCONFIGWIDGET_H
+﻿#ifndef AUTOCONFIGWIDGET_H
 #define AUTOCONFIGWIDGET_H
 
 #include <QWidget>
@@ -58,6 +58,10 @@ private:
     QVector<DeviceInfoWidget *> *deviceList;
 
     QWidget *parent;
+
+    QMap<QString, size_t> path_number;
+
+    QMap<QString, size_t> fileName_used;
 
 private slots:
     void selectFiles();

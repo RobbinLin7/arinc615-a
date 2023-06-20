@@ -1,4 +1,4 @@
-#include "mainwindow.h"
+﻿#include "mainwindow.h"
 #include <qdatastream.h>
 #include <QApplication>
 #ifdef Q_OS_WIN32
@@ -34,6 +34,11 @@ int main(int argc, char *argv[])
     QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
 #endif
     QApplication a(argc, argv);
+    QFile qssFile(":/Image/new1.qss");
+    if(qssFile.open(QFile::ReadOnly)){
+        a.setStyleSheet(qssFile.readAll());
+    }
+    qssFile.close();
     HANDLE m_hMutex;
     if(checkOnly(&m_hMutex) == false){
         return 0;
