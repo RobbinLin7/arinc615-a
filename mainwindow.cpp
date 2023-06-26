@@ -1,4 +1,4 @@
-#include "mainwindow.h"
+﻿#include "mainwindow.h"
 #include "ui_mainwindow.h"
 #include "ui_configwidget.h"
 #include "mainwindow.h"
@@ -145,12 +145,12 @@ void MainWindow::execFindOperation()
     if(this->entryList->size() > 0)
     {
 
-        FindDialog *findDialog = new FindDialog(this, entryList);
-        connect(findDialog, &FindDialog::on_accpetBtn_clicked, this, &MainWindow::find);
-        connect(findDialog, &FindDialog::rejected, this, [=](){
-            addLogToDockWidget(FIND_OP_CODE, "未选择IP,FIND操作失败");
-        });
-        findDialog->exec();
+        FindDialog *findDialogInstance = getFindDialogInstance();
+//        connect(findDialog, &FindDialog::on_accpetBtn_clicked, this, &MainWindow::find);
+//        connect(findDialog, &FindDialog::rejected, this, [=](){
+//            addLogToDockWidget(FIND_OP_CODE, "未选择IP,FIND操作失败");
+//        });
+        findDialogInstance->exec();
     }
 //    else if(1 == this->entryList->size())
 //    {
@@ -651,6 +651,22 @@ QByteArray MainWindow::makeFindRequest(){
     datagram.append('\0');
     datagram.append('\0');
     return datagram;
+}
+
+FindDialog *MainWindow::getFindDialogInstance()
+{
+    if(findDialog != 0){
+        return findDialog;
+    }
+    else{
+        findDialog = new FindDialog(this, entryList);
+        connect(findDialog, &FindDialog::on_accpetBtn_clicked, this, &MainWindow::find);
+        connect(findDialog, &FindDialog::rejected, this, [=](){
+            addLogToDockWidget(FIND_OP_CODE, "未选择IP,FIND操作失败");
+        });
+        return findDialog;
+    }
+
 }
 
 void MainWindow::EnableOrdisableExceptFind(bool flag){

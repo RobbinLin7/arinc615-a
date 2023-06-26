@@ -1,4 +1,4 @@
-#ifndef MAINWINDOW_H
+﻿#ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
 #include <QMainWindow>
@@ -152,6 +152,12 @@ private:
     QList<MyThread*> threads;                         //操作线程
 
     QUdpSocket* tftpServer = 0;
+
+
+    //单例模式
+    FindDialog* findDialog = 0;
+
+    FindDialog* getFindDialogInstance();
 
     //QUdpSocket* tftpClient = 0;
 
