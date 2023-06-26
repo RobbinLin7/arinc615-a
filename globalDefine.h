@@ -1,4 +1,4 @@
-#ifndef GLOBALDEFINE_H
+﻿#ifndef GLOBALDEFINE_H
 #define GLOBALDEFINE_H
 #include<string>
 namespace GlobalDefine{
@@ -7,7 +7,7 @@ namespace GlobalDefine{
 #define FUNC_RETUEN_ERROR           (-1)        //函数错误返回
 
 
-#define MAINWINDOW_TITLE            "加卸载工具(ARINC615ATool-V1.0.14)"
+#define MAINWINDOW_TITLE            "加卸载工具(ARINC615ATool-V1.0.15)"
 #define WINDOW_WIDTH                1500        //界面宽度
 #define WINDOW_HEIGHT               700         //界面高度
 

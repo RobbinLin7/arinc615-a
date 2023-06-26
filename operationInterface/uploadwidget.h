@@ -1,4 +1,4 @@
-#ifndef UPLOADWIDGET_H
+﻿#ifndef UPLOADWIDGET_H
 #define UPLOADWIDGET_H
 
 #include <QWidget>
@@ -37,13 +37,14 @@ private:
     unsigned int& threadsCnt;
     QVector<FileInfoWidget *> mFilesList;           //存放文件列表
     int numFilesSelected;                           //记录选中文件数目
-    QErrorMessage *dialog;
+    //QErrorMessage *dialog;
     QThreadPool* pool;
     //MyThread** threads;
     QList<MyThread*>& threads;
     bool beginUpload();
     QVector<DeviceInfoWidget *> *deviceList;
     unsigned int finishedThreadCnt = 0;
+    QList<QListWidgetItem*> widgetItemList;
 private slots:
     void radioChecked(bool checked, QString fileName);
     void on_pushButton_clicked();

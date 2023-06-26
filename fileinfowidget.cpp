@@ -1,4 +1,4 @@
-#include "fileinfowidget.h"
+﻿#include "fileinfowidget.h"
 #include "ui_fileinfowidget.h"
 #include <qdebug.h>
 #include <QFileInfo>
@@ -41,6 +41,7 @@ FileInfoWidget::FileInfoWidget(QString fileName, QString fileDes, QWidget *paren
 FileInfoWidget::~FileInfoWidget()
 {
     delete ui;
+    delete file;
 }
 
 void FileInfoWidget::setSelectRadio(bool checked){

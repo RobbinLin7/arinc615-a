@@ -1,4 +1,4 @@
-#include "uploadwidget.h"
+﻿#include "uploadwidget.h"
 #include "ui_uploadwidget.h"
 #include "ui_fileinfowidget.h"
 #include <QPushButton>
@@ -43,7 +43,9 @@ UploadWidget::UploadWidget(QThreadPool *pool, QList<MyThread*>& threads, unsigne
 UploadWidget::~UploadWidget()
 {
     delete ui;
-    //threads.erase(threads.begin(), threads.end());
+    for(int i = 0; i < widgetItemList.size(); i++){
+        delete widgetItemList.at(i);
+    }
 }
 
 void UploadWidget::addFiles(QStringList files){
@@ -53,6 +55,7 @@ void UploadWidget::addFiles(QStringList files){
         FileInfoWidget *fileInfoWidget = new FileInfoWidget(file, this);
         mFilesList << fileInfoWidget;
         QListWidgetItem *widgetItem = new QListWidgetItem();
+        widgetItemList.append(widgetItem);
         ui->listWidget->addItem(widgetItem);
         widgetItem->setSizeHint(QSize(600, 70));
         ui->listWidget->setItemWidget(widgetItem, fileInfoWidget);

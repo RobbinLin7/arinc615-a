@@ -188,16 +188,37 @@ void AutoConfigWidget::selectFiles()
         {
             //files.clear();
             QFileInfo info(fileNames.at(i));
-            if(path_number[info.absoluteFilePath()] == 0){
-                path_number[info.absoluteFilePath()] = fileName_used[info.fileName()]++;
-            }
+//            if(path_number[info.absoluteFilePath()] == 0){
+//                path_number[info.absoluteFilePath()] = fileName_used[info.fileName()]++;
+//            }
 
-            if(path_number[info.absoluteFilePath()] != 0){
-                files += info.fileName() + QString("(%1)").arg(path_number[info.absoluteFilePath()]);
+//            if(path_number[info.absoluteFilePath()] != 0){
+//                files += info.fileName() + QString("(%1)").arg(path_number[info.absoluteFilePath()]);
+//            }
+//            else{
+//                files += info.fileName();
+//            }
+            if(path_number[info.absoluteFilePath()] == 0){
+                if(fileName_used[info.fileName()] == 0){
+                    files += info.fileName();
+                    path_number[info.absoluteFilePath()] = ++fileName_used[info.fileName()];
+
+                }
+                else{
+                    path_number[info.absoluteFilePath()] = ++fileName_used[info.fileName()];
+                    files += info.fileName() + QString("(%1)").arg(path_number[info.absoluteFilePath()] - 1);
+
+                }
             }
             else{
-                files += info.fileName();
+                if(path_number[info.absoluteFilePath()] == 1){
+                    files += info.fileName();
+                }
+                else{
+                    files += info.fileName() + QString("(%1)").arg(path_number[info.absoluteFilePath()] - 1);
+                }
             }
+
             //qDebug() << info.absolutePath();
             //qDebug() << info.baseName();
             //files += info.absolutePath() + info.baseName();

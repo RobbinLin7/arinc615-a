@@ -139,7 +139,7 @@ private:
 
     int responseDevicesCnt = 0;                           //记录响应的设备数量
 
-    QTimer *timer;
+    QTimer *timer = 0;
 
     QList<QNetworkAddressEntry> *entryList;        //记录本地所有IP信息
 
@@ -168,6 +168,8 @@ private:
     //a615_targets_find_list_t findList;
 
     unsigned int threadsCnt = 0;
+
+    unsigned int steps = 0;
 
     const unsigned int maxThreadCount = 15;
 

@@ -1,7 +1,9 @@
-#ifndef FINDINFOWIDGET_H
+﻿#ifndef FINDINFOWIDGET_H
 #define FINDINFOWIDGET_H
 
 #include <QWidget>
+#include <QTableWidgetItem>
+#include <QList>
 
 namespace Ui {
 class FindInfoWidget;
@@ -23,7 +25,7 @@ public:
 
 private:
     Ui::FindInfoWidget *ui;
-
+    QList<QTableWidgetItem*> widgetItemList;
     void initTableWidget();
     int mCurrentRow;         //记录当前行数
 };

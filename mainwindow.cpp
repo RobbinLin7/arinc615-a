@@ -16,7 +16,6 @@ MainWindow::MainWindow(QWidget *parent)
     pool.setMaxThreadCount(maxThreadCount);
     //在发现设备前，不允许进行其它操作
     EnableOrdisableExceptFind(false);
-    //a615_init();
     checkedDevices = new QList<const Device*>();
     this->entryList = new QList<QNetworkAddressEntry>();
     userProfile = QProcessEnvironment::systemEnvironment().value("userprofile");
@@ -53,9 +52,9 @@ MainWindow::MainWindow(QWidget *parent)
     connect(ui->autoConfigBtn, SIGNAL(clicked()), this, SLOT(execAutoConfigOperation()));
 
     connect(ui->actionToolVersion, &QAction::triggered, this, [=](){
-        QMessageBox::about(this,"About ARINC615ATool","ARINC615ATool V1.0.14 \n新增特性\n"
-                                                      "1.修改启动逻辑，防止软件多次启动\n"
-                                                      "2.添加参数配置界面，可手动配置超时等待时间和最大超时重传次数\n"
+        QMessageBox::about(this,"About ARINC615ATool","ARINC615ATool V1.0.15 \n新增特性\n"
+                                                      "1.当多个设备配置不同路径下相同文件名时，通过后缀进行区分\n"
+                                                      "2.单例化findDialog，在整个程序周期中只启动一次\n"
                                                        );
     });
 
@@ -130,9 +129,7 @@ void MainWindow::execFindOperation()
     if(devices){
         devices->clear();
         EnableOrdisableExceptFind(false);
-//        mFindInfoWidget->clearTableWidget();
-//        delete devices;
-//        devices = NULL;
+        //mFindInfoWidget->clearTableWidget();
     }
     else{
         devices = new QList<Device>();
@@ -522,11 +519,10 @@ void MainWindow::parseFindResponse(){
 }
 
 
-int steps = 0;
 void MainWindow::onTimerTimeout(){
     steps++;
     progressDialog->setValue(steps);
-    if(steps > progressDialog->maximum() || progressDialog->wasCanceled()){
+    if(steps > (unsigned int)progressDialog->maximum() || progressDialog->wasCanceled()){
         disconnect(uSock, &QUdpSocket::readyRead, this, &MainWindow::parseFindResponse);
         timer->stop();
         delete timer;
@@ -616,6 +612,7 @@ void MainWindow::find(int index){
     progressDialog->setWindowTitle(tr("设备发现进度"));
     progressDialog->setWindowModality(Qt::WindowModal);
     progressDialog->show();
+    //if(progressDialog != nullptr) delete progressDialog;
     mFindInfoWidget = std::make_shared<FindInfoWidget>(this);
     //mFindInfoWidget = new FindInfoWidget(this); //初始化Find界面
     qDebug() << "find triggered!";

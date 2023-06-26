@@ -1,4 +1,4 @@
-#include "findinfowidget.h"
+﻿#include "findinfowidget.h"
 #include "ui_findinfowidget.h"
 
 #include "globalDefine.h"
@@ -19,6 +19,9 @@ FindInfoWidget::FindInfoWidget(QWidget *parent) :
 FindInfoWidget::~FindInfoWidget()
 {
     delete ui;
+    for(int i = 0; i < widgetItemList.size(); i++){
+        delete widgetItemList.at(i);
+    }
 }
 
 //==================================================================
@@ -45,6 +48,8 @@ void FindInfoWidget::insertDeviceInfo(const QStringList &deviceInfo)
     for(int i = 0; i < deviceInfo.size(); i++)
     {
         QTableWidgetItem *item = new QTableWidgetItem(deviceInfo.at(i));
+
+        widgetItemList.append(item);
 
         ui->findInfoTableWidget->setItem(this->mCurrentRow, i, item);
     }
