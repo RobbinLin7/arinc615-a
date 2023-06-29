@@ -52,9 +52,8 @@ MainWindow::MainWindow(QWidget *parent)
     connect(ui->autoConfigBtn, SIGNAL(clicked()), this, SLOT(execAutoConfigOperation()));
 
     connect(ui->actionToolVersion, &QAction::triggered, this, [=](){
-        QMessageBox::about(this,"About ARINC615ATool","ARINC615ATool V1.0.15 \n新增特性\n"
-                                                      "1.当多个设备配置不同路径下相同文件名时，通过后缀进行区分\n"
-                                                      "2.单例化findDialog，在整个程序周期中只启动一次\n"
+        QMessageBox::about(this,"About ARINC615ATool","ARINC615ATool V1.0.16 \n新增特性\n"
+                                                      "1.自动化配置界面配置界面显示全路径，框距不足省略前缀\n"
                                                        );
     });
 
@@ -138,7 +137,7 @@ void MainWindow::execFindOperation()
     //devices = new QList<Device>();
     timer = new QTimer(this);
     deviceCnt = 0;
-    clearDeviceList();
+
     if(this->entryList->size() > 0)
     {
 
@@ -607,6 +606,7 @@ void MainWindow::getAllEntry(){
 }
 
 void MainWindow::find(int index){
+    clearDeviceList();
     entry = new QNetworkAddressEntry(entryList->at(index));
     progressDialog = new QProgressDialog(tr("发现操作进度"), tr("取消"), 0, 100, this);
     progressDialog->setWindowTitle(tr("设备发现进度"));
@@ -735,7 +735,6 @@ void MainWindow::tftpServerTftpReadReady()
                 tftpRequest->setRequestAndPort(datagram, port);
                 break;
             }
-
         }
     }
 }
@@ -744,11 +743,11 @@ void MainWindow::finishInformation(File_LCL* LCL_struct)
 {
     responseDevicesCnt++;
     if(LCL_struct) mInformationWidget->setTargetInfo(*LCL_struct);
-//    for(int i = 0; i < LCL_struct->Hw_num; i++){
-//        free(LCL_struct->Hws[i].parts);
-//        free(&LCL_struct->Hws[i]);
-//    }
-//    free(LCL_struct);
+    for(int i = 0; i < LCL_struct->Hw_num; i++){
+        free(LCL_struct->Hws[i].parts);
+    }
+    free(LCL_struct->Hws);
+    free(LCL_struct);
     if(responseDevicesCnt == checkedDevicesCnt){
         if(operationWidget){
             operationWidget->hide();

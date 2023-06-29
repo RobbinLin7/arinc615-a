@@ -1,4 +1,4 @@
-#ifndef INFORMATIONWIDGET_H
+﻿#ifndef INFORMATIONWIDGET_H
 #define INFORMATIONWIDGET_H
 
 #include <QWidget>
@@ -34,7 +34,6 @@ private:
     size_t partNum;
 
     size_t hardwareNum = 0;
-
 
 };
 

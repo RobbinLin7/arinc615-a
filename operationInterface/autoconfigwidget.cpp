@@ -35,10 +35,9 @@ AutoConfigWidget::AutoConfigWidget(QThreadPool* pool, QList<MyThread*> &threads,
         this->close();
     });
     ui->cfgInputBtn->hide();
-
-    //addRowItems("dev1");
-
-    //addRowItems("dev2");
+    for(int i = 0; i < deviceList->size(); i++){
+        deviceList->at(i)->setProgress(0);
+    }
 }
 
 AutoConfigWidget::~AutoConfigWidget()
@@ -49,22 +48,14 @@ AutoConfigWidget::~AutoConfigWidget()
 
 void AutoConfigWidget::initTableWidget()
 {
-
-    //ui->tableWidget->setRowCount(3);
     ui->tableWidget->setColumnCount(4);
-
-    ui->tableWidget->setColumnWidth(2, 500);
-    ui->tableWidget->setColumnWidth(3, 150);
-
     QStringList headerText = {"设备列表","ip地址", "配置文件", "选择"};
-    //ui->tableWidget->horizontalHeader()->setVisible(true);
-
     ui->tableWidget->setHorizontalHeaderLabels(headerText);
     ui->tableWidget->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
     ui->tableWidget->horizontalHeader()->setSectionResizeMode(0, QHeaderView::ResizeToContents);
+    ui->tableWidget->horizontalHeader()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
     ui->tableWidget->horizontalHeader()->setSectionResizeMode(3, QHeaderView::ResizeToContents);
     ui->tableWidget->verticalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
-    //addRowItems("dev1");
 }
 
 void AutoConfigWidget::addRowItems(const QString &devInfo, const QString &ip)
@@ -189,40 +180,26 @@ void AutoConfigWidget::selectFiles()
             //files.clear();
             QFileInfo info(fileNames.at(i));
 //            if(path_number[info.absoluteFilePath()] == 0){
-//                path_number[info.absoluteFilePath()] = fileName_used[info.fileName()]++;
-//            }
+//                if(fileName_used[info.fileName()] == 0){
+//                    files += info.fileName();
+//                    path_number[info.absoluteFilePath()] = ++fileName_used[info.fileName()];
 
-//            if(path_number[info.absoluteFilePath()] != 0){
-//                files += info.fileName() + QString("(%1)").arg(path_number[info.absoluteFilePath()]);
+//                }
+//                else{
+//                    path_number[info.absoluteFilePath()] = ++fileName_used[info.fileName()];
+//                    files += info.fileName() + QString("(%1)").arg(path_number[info.absoluteFilePath()] - 1);
+
+//                }
 //            }
 //            else{
-//                files += info.fileName();
+//                if(path_number[info.absoluteFilePath()] == 1){
+//                    files += info.fileName();
+//                }
+//                else{
+//                    files += info.fileName() + QString("(%1)").arg(path_number[info.absoluteFilePath()] - 1);
+//                }
 //            }
-            if(path_number[info.absoluteFilePath()] == 0){
-                if(fileName_used[info.fileName()] == 0){
-                    files += info.fileName();
-                    path_number[info.absoluteFilePath()] = ++fileName_used[info.fileName()];
-
-                }
-                else{
-                    path_number[info.absoluteFilePath()] = ++fileName_used[info.fileName()];
-                    files += info.fileName() + QString("(%1)").arg(path_number[info.absoluteFilePath()] - 1);
-
-                }
-            }
-            else{
-                if(path_number[info.absoluteFilePath()] == 1){
-                    files += info.fileName();
-                }
-                else{
-                    files += info.fileName() + QString("(%1)").arg(path_number[info.absoluteFilePath()] - 1);
-                }
-            }
-
-            //qDebug() << info.absolutePath();
-            //qDebug() << info.baseName();
-            //files += info.absolutePath() + info.baseName();
-            //files += info.fileName();
+            files += info.absoluteFilePath();
             files += i < fileNames.size() - 1 ? "\n" : "";
         }
 
@@ -283,6 +260,29 @@ void AutoConfigWidget::on_beginCfgBtn_clicked()
         pool->start(thread);
         thread->setAutoDelete(true);
         it++;
+    }
+}
+
+void AutoConfigWidget::resizeEvent(QResizeEvent *event)
+{
+    QFont font("Arial", 12);
+    QFontMetrics fontMetrics(font);
+    for(int i = 0; i < ui->tableWidget->rowCount(); i++){
+        //QString text = ui->tableWidget->item(i, 2)->text();
+        QStringList elidedTextList;
+        QString elidedTexts;
+        QString ip = ui->tableWidget->item(i, 1)->text(), name = ui->tableWidget->item(i, 0)->text();
+        if(deviceFileInfo[Device(ip, name)].size() == 0) continue;
+        for(int j = 0; j < deviceFileInfo[Device(ip, name)].size(); j++){
+            QString text = deviceFileInfo[Device(ip, name)].at(j);
+            QString elidedText = fontMetrics.elidedText(text, Qt::ElideLeft, ui->tableWidget->columnWidth(2));
+            elidedTextList.append(elidedText);
+        }
+        for(int j = 0; j < elidedTextList.size(); j++){
+            elidedTexts += elidedTextList[j];
+            elidedTexts += j != elidedTextList.size() - 1 ? "\n" : "";
+        }
+        ui->tableWidget->item(i, 2)->setText(elidedTexts);
     }
 }
 

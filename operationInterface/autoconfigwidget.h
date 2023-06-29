@@ -63,6 +63,8 @@ private:
 
     QMap<QString, size_t> fileName_used;
 
+
+
 private slots:
     void selectFiles();
 
@@ -72,6 +74,10 @@ private slots:
 signals:
     void sendAutoConfigStatusMessage(QString message, QString deviceName);
     void AutoConfigFinish();
+
+    // QWidget interface
+protected:
+    void resizeEvent(QResizeEvent *event);
 };
 
 #endif // AUTOCONFIGWIDGET_H
