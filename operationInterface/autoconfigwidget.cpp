@@ -129,6 +129,29 @@ bool AutoConfigWidget::MD5_test(QString filePath1, QString filePath2)
     }
 }
 
+void AutoConfigWidget::adjustFileNameColSize()
+{
+    QFont font("Arial", 12);
+    QFontMetrics fontMetrics(font);
+    for(int i = 0; i < ui->tableWidget->rowCount(); i++){
+        //QString text = ui->tableWidget->item(i, 2)->text();
+        QStringList elidedTextList;
+        QString elidedTexts;
+        QString ip = ui->tableWidget->item(i, 1)->text(), name = ui->tableWidget->item(i, 0)->text();
+        if(deviceFileInfo[Device(ip, name)].size() == 0) continue;
+        for(int j = 0; j < deviceFileInfo[Device(ip, name)].size(); j++){
+            QString text = deviceFileInfo[Device(ip, name)].at(j);
+            QString elidedText = fontMetrics.elidedText(text, Qt::ElideLeft, ui->tableWidget->columnWidth(2));
+            elidedTextList.append(elidedText);
+        }
+        for(int j = 0; j < elidedTextList.size(); j++){
+            elidedTexts += elidedTextList[j];
+            elidedTexts += j != elidedTextList.size() - 1 ? "\n" : "";
+        }
+        ui->tableWidget->item(i, 2)->setText(elidedTexts);
+    }
+}
+
 void AutoConfigWidget::selectFiles()
 {
     QPushButton *btn = (QPushButton*)sender();
@@ -206,10 +229,10 @@ void AutoConfigWidget::selectFiles()
         QTableWidgetItem *item = new QTableWidgetItem(files);
 
         item->setTextAlignment(Qt::AlignHCenter | Qt::AlignVCenter);
-
         ui->tableWidget->setItem(row, column - 1, item);
         deviceName = ui->tableWidget->item(row, column - 3)->text();
         ip = ui->tableWidget->item(row, column - 2)->text();
+
         Device dev(" ", " ");
         for(int i = 0; i < this->deviceIP.size(); i++)
         {
@@ -224,6 +247,7 @@ void AutoConfigWidget::selectFiles()
         //this->deviceFileInfo.value(this->deviceIP.value(deviceName), fileaNames);
         //this->deviceFileInfo.value(this->deviceIP.value(deviceName), fileNames);
         this->deviceFileInfo[dev] = fileNames;
+        adjustFileNameColSize();
     }
 
 }
@@ -265,25 +289,7 @@ void AutoConfigWidget::on_beginCfgBtn_clicked()
 
 void AutoConfigWidget::resizeEvent(QResizeEvent *event)
 {
-    QFont font("Arial", 12);
-    QFontMetrics fontMetrics(font);
-    for(int i = 0; i < ui->tableWidget->rowCount(); i++){
-        //QString text = ui->tableWidget->item(i, 2)->text();
-        QStringList elidedTextList;
-        QString elidedTexts;
-        QString ip = ui->tableWidget->item(i, 1)->text(), name = ui->tableWidget->item(i, 0)->text();
-        if(deviceFileInfo[Device(ip, name)].size() == 0) continue;
-        for(int j = 0; j < deviceFileInfo[Device(ip, name)].size(); j++){
-            QString text = deviceFileInfo[Device(ip, name)].at(j);
-            QString elidedText = fontMetrics.elidedText(text, Qt::ElideLeft, ui->tableWidget->columnWidth(2));
-            elidedTextList.append(elidedText);
-        }
-        for(int j = 0; j < elidedTextList.size(); j++){
-            elidedTexts += elidedTextList[j];
-            elidedTexts += j != elidedTextList.size() - 1 ? "\n" : "";
-        }
-        ui->tableWidget->item(i, 2)->setText(elidedTexts);
-    }
+    adjustFileNameColSize();
 }
 
 void AutoConfigWidget::cancelFiles()

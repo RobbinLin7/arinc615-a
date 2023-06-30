@@ -3,6 +3,7 @@
 
 #include <QDialog>
 #include <QValidator>
+#include "dir.h"
 namespace Ui {
 class ParaConfigDialog;
 }
@@ -20,7 +21,7 @@ private:
     QIntValidator* validator1;
     QIntValidator* validator2;
 signals:
-    void sendParas(size_t, size_t);
+    void sendParas(size_t, size_t, size_t, size_t);
     void sendLog(QString);
 
     // QWidget interface

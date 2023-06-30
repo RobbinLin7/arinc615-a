@@ -5,9 +5,13 @@
 #include<QXmlStreamReader>
 #include<QFile>
 #include<QDebug>
+#include <QDomDocument>
+#include <QProcessEnvironment>
 extern char dir[MAX_DIR_LEN];
 extern size_t max_retrans_times;
 extern size_t wait_time_ms;
+extern size_t max_find_response_time_ms;
+extern size_t state_file_send_interval;
 #define INIT "./615A.ini"
 #define LOAD_DIR {QFile file(INIT);if(file.open(QIODevice::ReadOnly)){QDataStream in(&file); in.readRawData(dir, MAX_DIR_LEN); file.close();}};
 
@@ -24,6 +28,10 @@ extern size_t wait_time_ms;
                     };
 bool loadxml();     //从XML文件中加载用户目录，最大重传次数，重传等待时间等参数
 bool savexml();     //将用户目录，最大重传次数，重传等待时间等参数写到XML文件中
+enum Type{stringType, ulonglongType};
+bool newElement(QDomDocument *doc, QDomElement* root, QString name, Type type, void* data);
+
+
 
 
 #endif // DIR_H

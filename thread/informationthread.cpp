@@ -41,6 +41,8 @@ void InformationThread::run(){
                 }
                 qDebug() << "LNL文件接收完毕";
                 emit(informationStatusMessage(QString(tr("LCL接收完成"))));
+                File_LCL *LCL_struct = parseLCL();
+                emit(informationFinished((LCL_struct)));
                 status = END;
             }
             else{
@@ -57,8 +59,6 @@ void InformationThread::run(){
             break;
         }
     }
-    File_LCL *LCL_struct = parseLCL();
-    emit(informationFinished((LCL_struct)));
 }
 
 File_LCL* InformationThread::parseLCL(){

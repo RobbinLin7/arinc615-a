@@ -7,6 +7,8 @@
 char dir[256];
 size_t max_retrans_times = 20;
 size_t wait_time_ms = 2000;
+size_t max_find_response_time_ms = 3000;
+size_t state_file_send_interval = 10000;
 
 bool checkOnly(HANDLE* m_hMutex)
 {

@@ -55,6 +55,8 @@ private:
 
     bool MD5_test(QString filePath1, QString filePath2);
 
+    void adjustFileNameColSize();
+
     QVector<DeviceInfoWidget *> *deviceList;
 
     QWidget *parent;

@@ -1,10 +1,11 @@
 #include "dir.h"
-#include <QDomDocument>
-#include <QProcessEnvironment>
+
 
 bool loadxml()
 {
     QFile file("615A.xml");
+    bool ok;
+    uint dec;
     if(file.open(QIODevice::ReadOnly)){
         QXmlStreamReader xmlReader(&file);
         while(!xmlReader.atEnd() && !xmlReader.hasError()){
@@ -17,18 +18,28 @@ bool loadxml()
                     //qDebug() << "path" << path;
                 }
                 else if(xmlReader.name() == "max-retrans-times"){
-                    bool ok;
-                    uint dec = xmlReader.readElementText().toULongLong(&ok, 10);
+                    dec = xmlReader.readElementText().toULongLong(&ok, 10);
                     if(ok){
                         max_retrans_times = dec;
                     }
                     //qDebug() << "max-retrans-times" << max_retrans_times;
                 }
                 else if(xmlReader.name() == "wait-time-ms"){
-                    bool ok;
-                    uint dec = xmlReader.readElementText().toULongLong(&ok, 10);
+                    dec = xmlReader.readElementText().toULongLong(&ok, 10);
                     if(ok){
                         wait_time_ms = dec;
+                    }
+                }
+                else if(xmlReader.name() == "max-find-response-time-ms"){
+                    dec = xmlReader.readElementText().toULongLong(&ok, 10);
+                    if(ok){
+                        max_find_response_time_ms = dec;
+                    }
+                }
+                else if(xmlReader.name() == "state-file-send-interval"){
+                    dec = xmlReader.readElementText().toULongLong(&ok, 10);
+                    if(ok){
+                        state_file_send_interval = dec;
                     }
                 }
             }
@@ -82,8 +93,15 @@ bool savexml()
         wait_time_ms_element.appendChild(wait_time_ms_text);
         root.appendChild(wait_time_ms_element);
 
-
+        //添加子节点max-find-response-time-ms
+        QDomElement max_find_response_time_ms_element = doc.createElement("max-find-response-time-ms");
+        QDomText max_find_response_time_ms_text = doc.createTextNode(itoa(max_find_response_time_ms, buffer, 10));
+        max_find_response_time_ms_element.appendChild(max_find_response_time_ms_text);
+        root.appendChild(max_find_response_time_ms_element);
         doc.appendChild(root);
+
+        //添加子节点state-file-send-interval
+        newElement(&doc, &root, "state-file-send-interval" , ulonglongType, &state_file_send_interval);
 
         QTextStream stream(&file);
         doc.save(stream, 4);		// 缩进四格
@@ -96,4 +114,18 @@ bool savexml()
         return false;
     }
     return true;
+}
+
+bool newElement(QDomDocument *doc, QDomElement* root, QString name, Type type, void* data){
+    char buffer[20];
+    QDomElement element = doc->createElement(name);
+    QDomText text;
+    if(type == ulonglongType){
+        text = doc->createTextNode(itoa(*(size_t*)data, buffer, 10));
+    }
+    else if(type == stringType){
+        text = doc->createTextNode((char*)data);
+    }
+    element.appendChild(text);
+    root->appendChild(element);
 }

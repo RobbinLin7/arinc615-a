@@ -49,38 +49,44 @@
      <item row="1" column="0">
       <layout class="QGridLayout" name="gridLayout">
        <item row="1" column="1">
-        <widget class="QLineEdit" name="lineEdit_2"/>
+        <widget class="QSpinBox" name="maxRetransTimesSpinBox"/>
        </item>
-       <item row="0" column="0">
-        <widget class="QLabel" name="label">
-         <property name="text">
-          <string>最大重传次数</string>
-         </property>
-        </widget>
-       </item>
-       <item row="0" column="1">
-        <widget class="QLineEdit" name="lineEdit"/>
-       </item>
-       <item row="1" column="0">
+       <item row="2" column="0">
         <widget class="QLabel" name="label_2">
          <property name="text">
           <string>超时时间(ms)</string>
          </property>
         </widget>
        </item>
-       <item row="0" column="2">
-        <widget class="QLabel" name="label_3">
+       <item row="1" column="0">
+        <widget class="QLabel" name="label">
          <property name="text">
-          <string>10-30</string>
+          <string>最大重传次数</string>
          </property>
         </widget>
        </item>
-       <item row="1" column="2">
-        <widget class="QLabel" name="label_4">
+       <item row="3" column="1">
+        <widget class="QSpinBox" name="stateFileSendIntervalSpinBox"/>
+       </item>
+       <item row="3" column="0">
+        <widget class="QLabel" name="label_6">
          <property name="text">
-          <string>1000-3000</string>
+          <string>状态文件发送间隔(s)</string>
          </property>
         </widget>
+       </item>
+       <item row="0" column="0">
+        <widget class="QLabel" name="label_5">
+         <property name="text">
+          <string>FIND最长响应时间(s)</string>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="1">
+        <widget class="QSpinBox" name="findMaxResponseTimeSpinBox"/>
+       </item>
+       <item row="2" column="1">
+        <widget class="QSpinBox" name="timeoutSpinBox"/>
        </item>
       </layout>
      </item>

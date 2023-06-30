@@ -61,6 +61,8 @@ private slots:
 
     void execAbortOperation();
 
+    void execParaConfigOperation();
+
     //
     void execExitTool();
 
@@ -115,8 +117,6 @@ private:
 
     std::shared_ptr<AutoConfigWidget> mAutoConfigWidget;    //自动配置widget
 
-    std::shared_ptr<ParaConfigDialog> paraConfigDialog = nullptr;
-
     std::shared_ptr<QVBoxLayout> layout;                                   //ui->operationWidget的layout
 
     std::shared_ptr<QWidget> operationWidget = 0;                      //指向当前operationWidget显示的对象
@@ -159,6 +159,12 @@ private:
 
     FindDialog* getFindDialogInstance();
 
+    std::shared_ptr<ParaConfigDialog> paraConfigDialog = nullptr;
+
+    std::shared_ptr<ParaConfigDialog> getParaConfigDialogInstance();
+
+
+
     //QUdpSocket* tftpClient = 0;
 
     //QList<QList<QByteArray>*> datagramFromAllDevices;
@@ -170,6 +176,9 @@ private:
     unsigned int threadsCnt = 0;
 
     unsigned int steps = 0;
+
+    //maxThreadCount 的最佳值为与逻辑核对应的个数，比如i5-6600为4核4线程，那么最佳个数为4
+    //又比如i5-13600k为14核20线程，那么maxThreadCount的最佳值为20
 
     const unsigned int maxThreadCount = 15;
 

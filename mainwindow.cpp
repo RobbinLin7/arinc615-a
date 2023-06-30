@@ -52,24 +52,15 @@ MainWindow::MainWindow(QWidget *parent)
     connect(ui->autoConfigBtn, SIGNAL(clicked()), this, SLOT(execAutoConfigOperation()));
 
     connect(ui->actionToolVersion, &QAction::triggered, this, [=](){
-        QMessageBox::about(this,"About ARINC615ATool","ARINC615ATool V1.0.16 \n新增特性\n"
-                                                      "1.自动化配置界面配置界面显示全路径，框距不足省略前缀\n"
+        QMessageBox::about(this,"About ARINC615ATool","ARINC615ATool V1.0.17 \n新增特性\n"
+                                                      "1.修改了当设备信息操作不能正确发送LCL文件导致客户端退出的bug\n"
+                                                      "2.新增两个全局配置参数：状态文件传输间隔，FIND操作最长响应时间"
                                                        );
     });
 
-    connect(ui->paraConfigAction, &QAction::triggered, this, [=](){
-        if(paraConfigDialog == nullptr){
-            paraConfigDialog = std::make_shared<ParaConfigDialog>(this);
-            connect(paraConfigDialog.get(), &ParaConfigDialog::sendParas, this, [=](size_t mtt, size_t wtms){
-                max_retrans_times = mtt;
-                wait_time_ms = wtms;
-            });
-            connect(paraConfigDialog.get(), &ParaConfigDialog::sendLog, this, [=](QString log){
-               this->addLogToDockWidget(PARAMETER_CONFIG_OP_CODE, log);
-            });
-        }
-        paraConfigDialog->show();
-    });
+    //connect(ui->paraConfigAction, &QAction::triggered, this,)
+
+    connect(ui->paraConfigAction, &QAction::triggered, this, &MainWindow::execParaConfigOperation);
 }
 
 MainWindow::~MainWindow()
@@ -170,10 +161,11 @@ void MainWindow::execFindOperation()
 //==================================================================
 void MainWindow::execInformationOperation()
 {
+    responseDevicesCnt = 0;
     threadsCnt = 0;
     threads.erase(threads.begin(), threads.end());
     addLogToDockWidget(INFO_OP_CODE, "开始信息操作");
-    focusOnCurrentOperation();
+    //focusOnCurrentOperation();
     mInformationWidget = std::make_shared<InformationWidget>(this);//初始化information界面
     timer = new QTimer(this);
     qDebug() << "Information triggered!";
@@ -191,6 +183,11 @@ void MainWindow::execInformationOperation()
             thread->setAutoDelete(true);
         }
     }
+    if(operationWidget){
+        operationWidget->hide();
+        layout->replaceWidget(operationWidget.get(), mInformationWidget.get());
+    }
+    operationWidget = mInformationWidget;
 }
 
 //==================================================================
@@ -310,6 +307,18 @@ void MainWindow::execOperatorDownloadOperation()
 void MainWindow::execAbortOperation()
 {
     qDebug() << "Abort triggered!";
+}
+
+void MainWindow::execParaConfigOperation()
+{
+    std::shared_ptr<ParaConfigDialog> paraConfigDialog = getParaConfigDialogInstance();
+    connect(paraConfigDialog.get(), &ParaConfigDialog::sendParas, this, [=](size_t mfrt, size_t mtt, size_t wtms, size_t sfsi){
+        max_find_response_time_ms = mfrt * 1000;
+        max_retrans_times = mtt;
+        wait_time_ms = wtms;
+        state_file_send_interval = sfsi;
+    });
+    paraConfigDialog->show();
 }
 
 //==================================================================
@@ -626,7 +635,7 @@ void MainWindow::find(int index){
     //在规定时间内接收FIND响应包
     connect(uSock, &QUdpSocket::readyRead, this, &MainWindow::parseFindResponse);
     connect(timer, &QTimer::timeout, this, &MainWindow::onTimerTimeout);
-    timer->start(30);
+    timer->start(max_find_response_time_ms / 100);
 }
 
 QByteArray MainWindow::makeFindRequest(){
@@ -664,6 +673,17 @@ FindDialog *MainWindow::getFindDialogInstance()
         return findDialog;
     }
 
+}
+
+std::shared_ptr<ParaConfigDialog> MainWindow::getParaConfigDialogInstance()
+{
+    if(paraConfigDialog == nullptr){
+        paraConfigDialog = std::make_shared<ParaConfigDialog>(this);
+        connect(paraConfigDialog.get(), &ParaConfigDialog::sendLog, this, [=](QString log){
+           this->addLogToDockWidget(PARAMETER_CONFIG_OP_CODE, log);
+        });
+    }
+    return paraConfigDialog;
 }
 
 void MainWindow::EnableOrdisableExceptFind(bool flag){
@@ -741,23 +761,16 @@ void MainWindow::tftpServerTftpReadReady()
 
 void MainWindow::finishInformation(File_LCL* LCL_struct)
 {
-    responseDevicesCnt++;
-    if(LCL_struct) mInformationWidget->setTargetInfo(*LCL_struct);
-    for(int i = 0; i < LCL_struct->Hw_num; i++){
-        free(LCL_struct->Hws[i].parts);
-    }
-    free(LCL_struct->Hws);
-    free(LCL_struct);
-    if(responseDevicesCnt == checkedDevicesCnt){
-        if(operationWidget){
-            operationWidget->hide();
-            layout->replaceWidget(operationWidget.get(), mInformationWidget.get());
+    if(LCL_struct){
+        //unfocusOnCurrentOperation();
+        mInformationWidget->setTargetInfo(*LCL_struct);
+        //free动态分配的内存
+        for(int i = 0; i < LCL_struct->Hw_num; i++){
+            free(LCL_struct->Hws[i].parts);
         }
-        operationWidget = mInformationWidget;
-        addLogToDockWidget(INFO_OP_CODE, "信息操作完成");
-        threads.erase(threads.begin(), threads.end());
-        unfocusOnCurrentOperation();
-        responseDevicesCnt = 0;
+        free(LCL_struct->Hws);
+        free(LCL_struct);
+        addLogToDockWidget(INFO_OP_CODE, QString(tr("信息操作完成%1/%2")).arg(++responseDevicesCnt).arg(checkedDevicesCnt));
     }
 }
 
@@ -782,5 +795,6 @@ void MainWindow::unfocusOnCurrentOperation()
     ui->actionFindOp->setEnabled(true);
     ui->selectALLOrNotCheckBox->setEnabled(true);
 }
+
 
 
