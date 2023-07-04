@@ -10,6 +10,9 @@ ODownloadWidget::ODownloadWidget(QThreadPool *pool, QList<MyThread*>& threads, u
     threadsCnt(threadsCnt)
 {
     threads.erase(threads.begin(), threads.end());
+    for(int i = 0; i < deviceList->size(); i++){
+        deviceList->at(i)->setProgress(0);
+    }
     ui->setupUi(this);
     ui->buttonBox->button(QDialogButtonBox::Ok)->setText(tr("开始下载"));
     ui->buttonBox->button(QDialogButtonBox::Cancel)->setText(tr("取消"));

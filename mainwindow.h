@@ -80,7 +80,7 @@ private slots:
 
     void tftpServerTftpReadReady();
 
-    void finishInformation(File_LCL* LCL_struct);
+    void finishInformation(File_LCL* LCL_struct, QString name, QString ip);
 
     //void beginUpload(QStringList pathList);
 
@@ -94,8 +94,9 @@ private slots:
 private:
     Ui::MainWindow *ui;
     void enableAllExceptCurrentOperation(bool flag);
-    int createDeviceList(const int &deviceNum, QList<Device>* devices);
+    int createDeviceWidget(const Device&);
     void clearDeviceList();
+    void addDevice(const Device&);
     void focusOnCurrentOperation();
     void unfocusOnCurrentOperation();
     QByteArray makeFindRequest();                   //构造FIND请求报文

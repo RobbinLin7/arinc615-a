@@ -387,7 +387,7 @@ bool Tftp::receiveFile(QUdpSocket *uSock, QString path, QString *errorMessage, b
     while(dataLen == TFTP_NOT_LAST_DATA_LEN){
         unsigned int retrans_times = 0;
         do{
-            readReady = uSock->waitForReadyRead();
+            readReady = uSock->waitForReadyRead(wait_time_ms);
             if(readReady){
                 if(uSock->pendingDatagramSize() < 4){
                     *errorMessage = QString("文件%1:DATA报文格式有误").arg(fileName);
@@ -416,7 +416,7 @@ bool Tftp::receiveFile(QUdpSocket *uSock, QString path, QString *errorMessage, b
             return false;
         }
         if(!readReady || block != expectedBlock){
-            *errorMessage = QString("等待文件%1DATA报文超时");
+            *errorMessage = QString("等待文件%1DATA报文超时").arg(fileName);
             return false;
         }
         ++expectedBlock;

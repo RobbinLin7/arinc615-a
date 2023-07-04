@@ -4,6 +4,7 @@
 #include <QObject>
 #include <QMutex>
 #include "tftp.h"
+#include "dir.h"
 
 class TftpRequest
 {
@@ -20,12 +21,12 @@ public:
         QByteArray tRequest;
         if(*mainThreadExitOrNot) return tRequest;
         bool flag = true;
-        if(!mutex.tryLock(WAIT_TIME_MS)){
+        if(!mutex.tryLock(wait_time_ms)){
 #ifdef  QT_DEBUG
             qDebug() << "等了一次";
 #endif
             ++wait_times;
-            while(!(*mainThreadExitOrNot) && !mutex.tryLock(WAIT_TIME_MS) && wait_times++ < 10){
+            while(!(*mainThreadExitOrNot) && !mutex.tryLock(wait_time_ms) && wait_times++ < max_retrans_times){
 #ifdef  QT_DEBUG
                 qDebug() << "又等了一次";
 #endif

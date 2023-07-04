@@ -3,13 +3,14 @@
 #include<QDebug>
 
 DeviceInfoWidget::DeviceInfoWidget(QWidget *parent, const Device* device) :
-    QWidget(parent), device(device),
-    ui(new Ui::DeviceInfoWidget)
+    QWidget(parent), ui(new Ui::DeviceInfoWidget),
+    device(device)
 {
     ui->setupUi(this);
-
     initDeviceInfoWidget();
     this->setDeviceInfo(QString("%1").arg(device->getName()), QString("%1").arg(device->getHostAddress()));
+    ui->deviceIPLineEdit->setReadOnly(true);
+    ui->deviceNameLineEdit->setReadOnly(true);
     connect(ui->deviceRadioBtn, &QRadioButton::toggled, this, [=](bool checked){
         emit(radioBtnChecked(checked, device));
     });
@@ -59,7 +60,6 @@ void DeviceInfoWidget::setProgress(const int &progress)
 void DeviceInfoWidget::setProgress(const int &progress, bool flag)
 {
     LEDLight led;
-    qDebug() << "hahahahahahakwejrlkew";
     if(flag) setProgress(progress);
     else{
         led.setLED(ui->statusLabel, "red", 30);

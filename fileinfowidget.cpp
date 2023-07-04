@@ -25,6 +25,8 @@ FileInfoWidget::FileInfoWidget(QFile *file, QWidget *parent):
     else{
         this->ui->lineEdit_2->setText(QString::number(file->size() * 1.0 / 1024 / 1024, 'f', 1));
     }
+    this->ui->lineEdit->setReadOnly(true);
+    this->ui->lineEdit_2->setReadOnly(true);
     file->close();
 }
 
@@ -36,6 +38,8 @@ FileInfoWidget::FileInfoWidget(QString fileName, QString fileDes, QWidget *paren
     this->ui->label->setText(tr("文件类型"));
     this->ui->lineEdit->setText(fileName);
     this->ui->lineEdit_2->setText(fileDes);
+    this->ui->lineEdit->setReadOnly(true);
+    this->ui->lineEdit_2->setReadOnly(true);
 }
 
 FileInfoWidget::~FileInfoWidget()

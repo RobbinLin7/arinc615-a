@@ -52,7 +52,7 @@
       <item>
        <widget class="QLabel" name="targetNumLabel">
         <property name="text">
-         <string>TextLabel</string>
+         <string>0</string>
         </property>
        </widget>
       </item>

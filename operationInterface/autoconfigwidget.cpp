@@ -256,6 +256,7 @@ void AutoConfigWidget::on_beginCfgBtn_clicked()
 {
 
     //for test
+    //AutoConfigProgressDialog* autoConfigProgressDialog = new AutoConfigProgressDialog(this);
     qDebug() << "设备数量: " << this->deviceFileInfo.size();
     this->setEnabled(false);
     QMap<Device, QStringList>::iterator it = this->deviceFileInfo.begin();
@@ -270,6 +271,7 @@ void AutoConfigWidget::on_beginCfgBtn_clicked()
         connect((AutoConfigThread*)thread, &AutoConfigThread::autoConfigStatusMessage, this, [=](QString message){
             emit sendAutoConfigStatusMessage(message, it.key().getName());
         });
+        //autoConfigProgressDialog->addProgressBar((AutoConfigThread*)thread);
         for(int i = 0; i < deviceList->size(); i++){
             if(*deviceList->at(i)->getDevice() == it.key()){
                connect((AutoConfigThread*)thread, &AutoConfigThread::autoConfigRate, deviceList->at(i), (newSetProgressType)&DeviceInfoWidget::setProgress);
@@ -285,6 +287,7 @@ void AutoConfigWidget::on_beginCfgBtn_clicked()
         thread->setAutoDelete(true);
         it++;
     }
+    //autoConfigProgressDialog->show();
 }
 
 void AutoConfigWidget::resizeEvent(QResizeEvent *event)
@@ -316,13 +319,14 @@ void AutoConfigWidget::cancelFiles()
 
     ui->tableWidget->setItem(row, column - 1, item);
 
-    //更新Map中的文件
-    QString deviceName = ui->tableWidget->item(row, column - 2)->text();
 
+    //更新Map中的文件
+    QString deviceName = ui->tableWidget->item(row, 0)->text();
+    QString ip = ui->tableWidget->item(row, 1)->text();
     Device dev(" ", " ");
     for(int i = 0; i < this->deviceIP.size(); i++)
     {
-        if(deviceName == this->deviceIP.at(i).getName())
+        if(deviceName == this->deviceIP.at(i).getName() && ip == this->deviceIP.at(i).getHostAddress())
         {
             dev = this->deviceIP.at(i);
             break;

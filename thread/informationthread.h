@@ -22,7 +22,7 @@ private:
     enum status_set{SEND_LCI_RRQ, WAIT_LCL_WRQ, END, ERROR} status;
 
 signals:
-    void informationFinished(File_LCL* LCL_struct);
+    void informationFinished(File_LCL* LCL_struct, QString, QString);
     void informationStatusMessage(QString message);
 };
 

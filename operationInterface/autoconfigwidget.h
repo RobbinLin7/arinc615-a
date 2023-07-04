@@ -9,6 +9,7 @@
 #include "thread/mdownloadthread.h"
 #include "thread/autoconfigthread.h"
 #include "deviceInfoWidget/deviceinfowidget.h"
+#include "autoconfigprogressdialog.h"
 #include <QMap>
 #include <QString>
 #include <QStringList>

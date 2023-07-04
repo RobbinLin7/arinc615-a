@@ -8,7 +8,9 @@ FindDialog::FindDialog(QWidget *parent, QList<QNetworkAddressEntry>* entryList) 
 {
     ui->setupUi(this);
     ui->buttonBox->button(QDialogButtonBox::Ok)->setText(tr("确定"));
+    ui->buttonBox->button(QDialogButtonBox::Ok)->setToolTip(QString(tr("确定")));
     ui->buttonBox->button(QDialogButtonBox::Cancel)->setText(tr("取消"));
+    ui->buttonBox->button(QDialogButtonBox::Cancel)->setToolTip(QString(tr("取消")));
     int cnt = 0;
     for(QNetworkAddressEntry entry: *entryList){
         ui->comboBox->insertItem(cnt++, entry.ip().toString());

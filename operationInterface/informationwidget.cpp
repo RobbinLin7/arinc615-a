@@ -37,7 +37,7 @@ void InformationWidget::setTargetInfoNum(const int &num, const int &partNumber)
     this->partNum = partNumber;
 }
 
-void InformationWidget::setTargetInfo(File_LCL lcl)
+void InformationWidget::setTargetInfo(File_LCL lcl, QString name, QString ip)
 {
     char Pro_ver[3];
     memcpy(Pro_ver, lcl.Pro_ver, 2);
@@ -48,7 +48,7 @@ void InformationWidget::setTargetInfo(File_LCL lcl)
     for(int i = 0 ; i < lcl.Hw_num; i++)
     {
         QTreeWidgetItem *topItem = new QTreeWidgetItem(ui->targetInfoTreeWidget);
-        topItem->setText(0, QString("目标硬件%1").arg(hardwareNum));
+        topItem->setText(0, QString("%1-%2").arg(name).arg(ip));
         //topItem->setCheckState(0, Qt::Unchecked);
         topItem->setData(0, Qt::CheckStateRole, QVariant());
 

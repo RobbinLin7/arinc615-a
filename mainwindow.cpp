@@ -46,7 +46,7 @@ MainWindow::MainWindow(QWidget *parent)
     connect(ui->actionExit, SIGNAL(triggered()), this, SLOT(execExitTool()));
 
     //触发全选按钮
-    connect(ui->selectALLOrNotCheckBox, SIGNAL(toggled(bool)), this, SLOT(selectAllDeviceOrNot(bool)));
+    connect(ui->selectALLOrNotCheckBox, SIGNAL(clicked(bool)), this, SLOT(selectAllDeviceOrNot(bool)));
 
     //触发自动配置按钮
     connect(ui->autoConfigBtn, SIGNAL(clicked()), this, SLOT(execAutoConfigOperation()));
@@ -57,8 +57,6 @@ MainWindow::MainWindow(QWidget *parent)
                                                       "2.新增两个全局配置参数：状态文件传输间隔，FIND操作最长响应时间"
                                                        );
     });
-
-    //connect(ui->paraConfigAction, &QAction::triggered, this,)
 
     connect(ui->paraConfigAction, &QAction::triggered, this, &MainWindow::execParaConfigOperation);
 }
@@ -116,18 +114,7 @@ void MainWindow::initMainWindow()
 //==================================================================
 void MainWindow::execFindOperation()
 {
-    if(devices){
-        devices->clear();
-        EnableOrdisableExceptFind(false);
-        //mFindInfoWidget->clearTableWidget();
-    }
-    else{
-        devices = new QList<Device>();
-    }
-    ui->selectALLOrNotCheckBox->setChecked(false);
-    //devices = new QList<Device>();
     timer = new QTimer(this);
-    deviceCnt = 0;
 
     if(this->entryList->size() > 0)
     {
@@ -165,15 +152,27 @@ void MainWindow::execInformationOperation()
     threadsCnt = 0;
     threads.erase(threads.begin(), threads.end());
     addLogToDockWidget(INFO_OP_CODE, "开始信息操作");
-    //focusOnCurrentOperation();
+    focusOnCurrentOperation();
     mInformationWidget = std::make_shared<InformationWidget>(this);//初始化information界面
     timer = new QTimer(this);
     qDebug() << "Information triggered!";
+    for(int i = 0; i < deviceCnt; i++){
+        mDevicesList.at(i)->setProgress(0);
+    }
     for(int i = 0; i < deviceCnt; i++){
         if(mDevicesList.at(i)->checkedOrNot()){
             MyThread* thread = new InformationThread(mDevicesList.at(i)->getDevice(), new TftpRequest());
             threads.append(thread);
             connect((InformationThread*)thread, &InformationThread::informationFinished, this, &MainWindow::finishInformation);
+            connect((InformationThread*)thread, &InformationThread::informationFinished, mDevicesList.at(i), [=](File_LCL* LCL_struct){
+               if(LCL_struct != NULL){
+                   mDevicesList.at(i)->setProgress(100);
+               }
+               else{
+                   mDevicesList.at(i)->setProgress(0);
+                   mDevicesList.at(i)->setProgress(0, false);
+               }
+            });
             connect((InformationThread*)thread, &InformationThread::informationStatusMessage, this, [=](QString msg){
                 qDebug() << mDevicesList.at(i)->getDevice()->getName();
                 this->addLogToDockWidget(INFO_OP_CODE, msg, mDevicesList.at(i)->getDevice()->getName());
@@ -374,35 +373,42 @@ void MainWindow::selectAllDeviceOrNot(bool checked)
 //return:返回创建成功与否的状态
 //log:8-1新增
 //==================================================================
-int MainWindow::createDeviceList(const int &deviceNum, QList<Device>* devices)
-{
-    if(0 == deviceNum)
-        return FUNC_RETUEN_ERROR;
+int MainWindow::createDeviceWidget(const Device& device)
+{    
+    DeviceInfoWidget* deviceInfo = new DeviceInfoWidget(this, &device);
+    this->mDevicesList << deviceInfo;
+    connect(deviceInfo, &DeviceInfoWidget::radioBtnChecked, this, &MainWindow::on_radio_toggled);
+    QListWidgetItem *widgetItem = new QListWidgetItem();
+    widgetItem->setSizeHint(QSize(MAX_LIST_WIDGET_WIDTH, MAX_LIST_WIDGET_HEIGHT));
+    ui->deviceListWidget->addItem(widgetItem);
+    ui->deviceListWidget->setItemWidget(widgetItem, deviceInfo);
 
-    //初始化设备列表
-    for(int i = 0; i < devices->size(); i++)
-    {
+//    //初始化设备列表
+//    for(int i = 0; i < devices->size(); i++)
+//    {
 
-        DeviceInfoWidget *deviceInfo = new DeviceInfoWidget(this, &devices->at(i));
-        //填入相关信息
+//        DeviceInfoWidget *deviceInfo = new DeviceInfoWidget(this, &devices->at(i));
+//        //填入相关信息
 
-        //存入vector
-        this->mDevicesList << deviceInfo;
+//        //存入vector
+//        this->mDevicesList << deviceInfo;
 
-        connect(deviceInfo, &DeviceInfoWidget::radioBtnChecked, this, &MainWindow::on_radio_toggled);
-    }
+//        connect(deviceInfo, &DeviceInfoWidget::radioBtnChecked, this, &MainWindow::on_radio_toggled);
+//    }
 
-    //将设备列表加载到list widget
-    for(int i = 0; i < deviceNum; i++)
-    {
-        QListWidgetItem *widgetItem = new QListWidgetItem();
-        widgetItem->setSizeHint(QSize(MAX_LIST_WIDGET_WIDTH, MAX_LIST_WIDGET_HEIGHT));
-        ui->deviceListWidget->addItem(widgetItem);
-        ui->deviceListWidget->setItemWidget(widgetItem, this->mDevicesList.at(i));
-    }
+//    //将设备列表加载到list widget
+//    for(int i = 0; i < deviceNum; i++)
+//    {
+//        QListWidgetItem *widgetItem = new QListWidgetItem();
+//        widgetItem->setSizeHint(QSize(MAX_LIST_WIDGET_WIDTH, MAX_LIST_WIDGET_HEIGHT));
+//        ui->deviceListWidget->addItem(widgetItem);
+//        ui->deviceListWidget->setItemWidget(widgetItem, this->mDevicesList.at(i));
+//    }
 
     return FUNC_RETUEN_SUCCESS;
 }
+
+
 
 //==================================================================
 //function name: clearDeviceList
@@ -428,6 +434,7 @@ void MainWindow::clearDeviceList()
     }
 
 }
+
 
 //==================================================================
 //function name: addLogToDockWidget
@@ -520,7 +527,10 @@ void MainWindow::parseFindResponse(){
         if(deviceInfo.size() == 6){
             deviceCnt++;
             mFindInfoWidget->insertDeviceInfo(deviceInfo);
-            devices->append(Device(remoteAddress.toString(), deviceInfo[1], deviceInfo[2], deviceInfo[3], deviceInfo[4], deviceInfo[5]));
+            Device device(remoteAddress.toString(), deviceInfo[1], deviceInfo[2], deviceInfo[3], deviceInfo[4], deviceInfo[5]);
+            devices->append(device);
+            createDeviceWidget(devices->last());
+            //devices->append(Device(remoteAddress.toString(), deviceInfo[1], deviceInfo[2], deviceInfo[3], deviceInfo[4], deviceInfo[5]));
         }
         qDebug() << deviceInfo;
     }
@@ -542,17 +552,9 @@ void MainWindow::onTimerTimeout(){
         qDebug() << "disconnect success";
         //mFindInfoWidget->setWindowModality(Qt::ApplicationModal);
         //mFindInfoWidget->show();
-        if(operationWidget) {
-            layout->replaceWidget(operationWidget.get(), mFindInfoWidget.get());
-            operationWidget->hide();
-        }
-        else{
-            layout->addWidget(mFindInfoWidget.get());
-        }
-        operationWidget = mFindInfoWidget;
         //日志显示
         addLogToDockWidget(FIND_OP_CODE, QString("查找到[%1]个设备").arg(deviceCnt));
-        createDeviceList(deviceCnt, devices);
+        //createDeviceWidget(deviceCnt, devices);
         //绘制XML
 #if 1
         a615_targets_find_list_t findList;
@@ -616,13 +618,35 @@ void MainWindow::getAllEntry(){
 
 void MainWindow::find(int index){
     clearDeviceList();
+    ui->selectALLOrNotCheckBox->setChecked(false);
+    deviceCnt = 0;
+    EnableOrdisableExceptFind(false);
+    if(devices){
+        devices->clear();
+        //mFindInfoWidget->clearTableWidget();
+        qDebug() << devices->size();
+    }
+    else{
+        devices = new QList<Device>();
+    }
+    checkedDevicesCnt = 0;
+    checkedDevices->clear();
     entry = new QNetworkAddressEntry(entryList->at(index));
+    mFindInfoWidget = std::make_shared<FindInfoWidget>(this);
+    if(operationWidget) {
+        layout->replaceWidget(operationWidget.get(), mFindInfoWidget.get());
+        operationWidget->hide();
+    }
+    else{
+        layout->addWidget(mFindInfoWidget.get());
+    }
+    operationWidget = mFindInfoWidget;
     progressDialog = new QProgressDialog(tr("发现操作进度"), tr("取消"), 0, 100, this);
     progressDialog->setWindowTitle(tr("设备发现进度"));
     progressDialog->setWindowModality(Qt::WindowModal);
     progressDialog->show();
     //if(progressDialog != nullptr) delete progressDialog;
-    mFindInfoWidget = std::make_shared<FindInfoWidget>(this);
+
     //mFindInfoWidget = new FindInfoWidget(this); //初始化Find界面
     qDebug() << "find triggered!";
     addLogToDockWidget(FIND_OP_CODE, "开始查找设备");
@@ -700,7 +724,7 @@ void MainWindow::EnableOrdisableExceptFind(bool flag){
 }
 
 void MainWindow::on_radio_toggled(bool checked, const Device* device){
-    ui->selectALLOrNotCheckBox->blockSignals(true);
+    //ui->selectALLOrNotCheckBox->blockSignals(true);
     if(checked) {
         checkedDevicesCnt++;
         if(checkedDevicesCnt == deviceCnt) this->ui->selectALLOrNotCheckBox->setChecked(true);
@@ -711,8 +735,9 @@ void MainWindow::on_radio_toggled(bool checked, const Device* device){
         this->ui->selectALLOrNotCheckBox->setChecked(false);
         checkedDevices->removeOne(device);
     }
+    qDebug() << "checkedDevicesCnt" << checkedDevicesCnt;
     checkIfAnyDeviceSelect();
-    ui->selectALLOrNotCheckBox->blockSignals(false);
+    //ui->selectALLOrNotCheckBox->blockSignals(false);
 }
 
 void MainWindow::checkIfAnyDeviceSelect(){
@@ -759,11 +784,10 @@ void MainWindow::tftpServerTftpReadReady()
     }
 }
 
-void MainWindow::finishInformation(File_LCL* LCL_struct)
+void MainWindow::finishInformation(File_LCL* LCL_struct, QString name, QString ip)
 {
     if(LCL_struct){
-        //unfocusOnCurrentOperation();
-        mInformationWidget->setTargetInfo(*LCL_struct);
+        mInformationWidget->setTargetInfo(*LCL_struct, name, ip);
         //free动态分配的内存
         for(int i = 0; i < LCL_struct->Hw_num; i++){
             free(LCL_struct->Hws[i].parts);
@@ -771,6 +795,12 @@ void MainWindow::finishInformation(File_LCL* LCL_struct)
         free(LCL_struct->Hws);
         free(LCL_struct);
         addLogToDockWidget(INFO_OP_CODE, QString(tr("信息操作完成%1/%2")).arg(++responseDevicesCnt).arg(checkedDevicesCnt));
+    }
+    else{
+        ++responseDevicesCnt;
+    }
+    if(responseDevicesCnt == checkedDevicesCnt){
+        unfocusOnCurrentOperation();
     }
 }
 

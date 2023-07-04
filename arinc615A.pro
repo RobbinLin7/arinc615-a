@@ -19,6 +19,7 @@ DEFINES += QT_DEPRECATED_WARNINGS
 
 SOURCES += \
     LEDLight/ledlight.cpp \
+    autoconfigprogressdialog.cpp \
     crc/crc.cpp \
     dir.cpp \
     operationInterface/autoconfigwidget.cpp \
@@ -48,6 +49,7 @@ SOURCES += \
     topology/createtopologyxml.cpp
 HEADERS += \
     LEDLight/ledlight.h \
+    autoconfigprogressdialog.h \
     crc/crc.h \
     dir.h \
     operationInterface/autoconfigwidget.h \
@@ -81,6 +83,7 @@ HEADERS += \
     thread/uploadthread.h \
     topology/createtopologyxml.h
 FORMS += \
+    autoconfigprogressdialog.ui \
     operationInterface/autoconfigwidget.ui \
     deviceInfoWidget/deviceinfowidget.ui \
     fileinfowidget.ui \

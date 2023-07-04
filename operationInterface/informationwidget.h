@@ -21,7 +21,7 @@ public:
 //    void setInformation(const QString &info);
 //    void appendInformation(const QString info);
 
-    void setTargetInfo(File_LCL lcl);
+    void setTargetInfo(File_LCL lcl, QString name = "", QString ip = "");
 
     void setTargetInfoNum(const int &num, const int &partNumber);
 

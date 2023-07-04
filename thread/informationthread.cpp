@@ -42,7 +42,7 @@ void InformationThread::run(){
                 qDebug() << "LNL文件接收完毕";
                 emit(informationStatusMessage(QString(tr("LCL接收完成"))));
                 File_LCL *LCL_struct = parseLCL();
-                emit(informationFinished((LCL_struct)));
+                emit(informationFinished(LCL_struct, device->getName(), device->getHostAddress()));
                 status = END;
             }
             else{
@@ -53,7 +53,8 @@ void InformationThread::run(){
         case ERROR:
             status = END;
             emit(informationStatusMessage(errorMessage));
-            emit(informationFinished(NULL));
+            emit(informationStatusMessage(QString("设备%1信息操作失败").arg(device->getName())));
+            emit(informationFinished(NULL, device->getName(), device->getHostAddress()));
             return;
         case END:
             break;
