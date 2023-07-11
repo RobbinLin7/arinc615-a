@@ -23,7 +23,7 @@ MainWindow::MainWindow(QWidget *parent)
     tftpServer = new QUdpSocket(this);
     tftpServer->bind(QHostAddress::AnyIPv4, 8888, QAbstractSocket::ShareAddress);
     connect(tftpServer, &QUdpSocket::readyRead, this, &MainWindow::tftpServerTftpReadReady);
-    getAllEntry();
+
     initMainWindow();
     //触发加卸载操作的connect函数
     connect(ui->actionFindOp, SIGNAL(triggered()), this, SLOT(execFindOperation()));
@@ -52,9 +52,10 @@ MainWindow::MainWindow(QWidget *parent)
     connect(ui->autoConfigBtn, SIGNAL(clicked()), this, SLOT(execAutoConfigOperation()));
 
     connect(ui->actionToolVersion, &QAction::triggered, this, [=](){
-        QMessageBox::about(this,"About ARINC615ATool","ARINC615ATool V1.0.17 \n新增特性\n"
-                                                      "1.修改了当设备信息操作不能正确发送LCL文件导致客户端退出的bug\n"
-                                                      "2.新增两个全局配置参数：状态文件传输间隔，FIND操作最长响应时间"
+        QMessageBox::about(this,"About ARINC615ATool","ARINC615ATool V1.0.18 \n新增特性\n"
+                                                      "1.FIND请求包携带超时时间、重传次数、状态文件发送间隔等参数\n"
+                                                      "2.修改了一下闪退BUG\n"
+                                                      "3.添加了日志功能"
                                                        );
     });
 
@@ -66,6 +67,7 @@ MainWindow::~MainWindow()
     qDebug() << pool.activeThreadCount();
     emit(mainThreadExit());
     qDebug() << "线程是否全部退出" << pool.waitForDone(0);
+    saveLog();
     //SAVE_DIR
     savexml();
     delete entry;
@@ -114,27 +116,18 @@ void MainWindow::initMainWindow()
 //==================================================================
 void MainWindow::execFindOperation()
 {
-    timer = new QTimer(this);
-
+    timer = std::make_shared<QTimer>(this);
+    //timer = new QTimer(this);
+    getAllEntry();
     if(this->entryList->size() > 0)
     {
-
         FindDialog *findDialogInstance = getFindDialogInstance();
-//        connect(findDialog, &FindDialog::on_accpetBtn_clicked, this, &MainWindow::find);
-//        connect(findDialog, &FindDialog::rejected, this, [=](){
-//            addLogToDockWidget(FIND_OP_CODE, "未选择IP,FIND操作失败");
-//        });
         findDialogInstance->exec();
     }
-//    else if(1 == this->entryList->size())
-//    {
-//        find(0);
-//    }
     else
     {
         addLogToDockWidget(FIND_OP_CODE, QString(tr("未找到ip地址, Find操作异常终止")));
     }
-
 }
 
 //==================================================================
@@ -154,7 +147,8 @@ void MainWindow::execInformationOperation()
     addLogToDockWidget(INFO_OP_CODE, "开始信息操作");
     focusOnCurrentOperation();
     mInformationWidget = std::make_shared<InformationWidget>(this);//初始化information界面
-    timer = new QTimer(this);
+    timer = std::make_shared<QTimer>(this);
+    //timer = new QTimer(this);
     qDebug() << "Information triggered!";
     for(int i = 0; i < deviceCnt; i++){
         mDevicesList.at(i)->setProgress(0);
@@ -174,8 +168,8 @@ void MainWindow::execInformationOperation()
                }
             });
             connect((InformationThread*)thread, &InformationThread::informationStatusMessage, this, [=](QString msg){
-                qDebug() << mDevicesList.at(i)->getDevice()->getName();
-                this->addLogToDockWidget(INFO_OP_CODE, msg, mDevicesList.at(i)->getDevice()->getName());
+                this->addLogToDockWidget(INFO_OP_CODE, msg, mDevicesList.at(i)->getDevice()->getName() + ':' +
+                                         mDevicesList.at(i)->getDeviceIP());
             });
             connect(this, &MainWindow::mainThreadExit, thread, &MyThread::mainThreadExited);
             pool.start(thread);
@@ -424,12 +418,13 @@ void MainWindow::clearDeviceList()
     if(ui->deviceListWidget->count() != 0)
     {
         //delete 申请的内存空间
-//        for(int i = 0; i < this->mDevicesList.size(); i++)
-//        {
-//            delete this->mDevicesList.at(i);
-//            delete ui->deviceListWidget->item(i);
-//        }
+        for(int i = 0; i < this->mDevicesList.size(); i++)
+        {
+            delete this->mDevicesList.at(i);
+            //delete ui->deviceListWidget->item(i);
+        }
         this->mDevicesList.clear();
+        //对QListWidget调用clear函数会自动释放QListWidget里面的内容，故不需要额外的delete
         ui->deviceListWidget->clear();
     }
 
@@ -543,7 +538,6 @@ void MainWindow::onTimerTimeout(){
     if(steps > (unsigned int)progressDialog->maximum() || progressDialog->wasCanceled()){
         disconnect(uSock, &QUdpSocket::readyRead, this, &MainWindow::parseFindResponse);
         timer->stop();
-        delete timer;
         delete uSock;
         steps = 0;
         delete progressDialog;
@@ -597,11 +591,11 @@ void MainWindow::onTimerTimeout(){
         free(findList.targets_info);
 #endif
     }
-    //clearDeviceList();
 }
 
 //获取包含本地地址的所有
 void MainWindow::getAllEntry(){
+    this->entryList->clear();
     foreach(QNetworkInterface netInterface, QNetworkInterface::allInterfaces()){
         if(!netInterface.flags().testFlag(QNetworkInterface::IsRunning)) continue;
         QList<QNetworkAddressEntry> entryList = netInterface.addressEntries();
@@ -658,34 +652,33 @@ void MainWindow::find(int index){
     uSock->writeDatagram(datagram.data(), datagram.size(), entry->broadcast(), 1001);
     //在规定时间内接收FIND响应包
     connect(uSock, &QUdpSocket::readyRead, this, &MainWindow::parseFindResponse);
-    connect(timer, &QTimer::timeout, this, &MainWindow::onTimerTimeout);
+    connect(timer.get(), &QTimer::timeout, this, &MainWindow::onTimerTimeout);
     timer->start(max_find_response_time_ms / 100);
 }
 
 QByteArray MainWindow::makeFindRequest(){
+    find_req req;   //find请求
+    memset(&req, 0, sizeof(req));
+    req.opcode = 256;
+    req.ASCII_String = '\0';
+    req.Packet_Terminator = 0x10;
+    req.tftpRetryNum = max_retrans_times;
+    req.tftpTimeout = wait_time_ms;
+    req.lusPeriod = state_file_send_interval;
     QByteArray datagram;
-    datagram.append(1);
-    datagram.append('\0');
-    datagram.append('\0');
-    datagram.append(0x10);
-    datagram.append(0x0a);
-    datagram.append('\0');
-    datagram.append('\0');
-    datagram.append('\0');
-    datagram.append(0xd0);
-    datagram.append(0x70);
-    datagram.append('\0');
-    datagram.append('\0');
-    datagram.append(0xd0);
-    datagram.append(0x70);
-    datagram.append('\0');
-    datagram.append('\0');
+    appendBigEndian(&req.opcode, sizeof(req.opcode), datagram);
+    datagram.append(req.ASCII_String).append(req.Packet_Terminator);
+    appendBigEndian(&req.tftpRetryNum, sizeof(req.tftpRetryNum), datagram);
+    appendBigEndian(&req.tftpTimeout, sizeof(req.tftpTimeout), datagram);
+    appendBigEndian(&req.lusPeriod, sizeof(req.lusPeriod), datagram);
     return datagram;
 }
 
 FindDialog *MainWindow::getFindDialogInstance()
 {
     if(findDialog != 0){
+        getAllEntry();
+        findDialog->updateEntryList(entryList);
         return findDialog;
     }
     else{
@@ -770,14 +763,53 @@ void MainWindow::tftpServerTftpReadReady()
         QHostAddress remote;
         quint16 port;
         QByteArray datagram;
+        QString fileName;
         datagram.resize(tftpServer->pendingDatagramSize());
+        TftpRequest* tftpRequest = nullptr;
         //在每个数据包前插入两字节的端口号
         tftpServer->readDatagram(datagram.data(), datagram.size(), &remote, &port);
+        fileName = datagram.mid(2).split('\0').at(0);
         for(int i = 0; i < threads.size(); i++){
-            qDebug() << "REMOTE:" << remote.toString() << "getHostAddress:" << threads.at(i)->getHostAddress().toString();
             if(remote == threads.at(i)->getHostAddress()){
-                TftpRequest* tftpRequest = threads.at(i)->getTftpRequest();
-                tftpRequest->setRequestAndPort(datagram, port);
+                if(fileName.endsWith(".LUS") || fileName.endsWith(".LNS")){
+                    TftpRequest *tftpRequest = new TftpRequest();
+                    StatusFileRcvThread::StatusFileType fileType;
+                    if(fileName.endsWith(".LUS")) {
+                        fileType = StatusFileRcvThread::LUS;
+                    }
+                    else{
+                        fileType = StatusFileRcvThread::LNS;
+                    }
+                    tftpRequest->setRequestAndPort(datagram, port);
+                    MyThread* statusFileRcvThread = new StatusFileRcvThread(fileType, tftpRequest, threads.at(i)->getDevice(), this);
+                    UploadThread* uploadThread = dynamic_cast<UploadThread*>(threads.at(i));
+                    ODownloadThread* oDownloadThread = dynamic_cast<ODownloadThread*>(threads.at(i));
+                    AutoConfigThread* autoConfigThread = dynamic_cast<AutoConfigThread*>(threads.at(i));
+                    if(uploadThread){
+                        connect((StatusFileRcvThread*)statusFileRcvThread, &StatusFileRcvThread::sendLUSInfSignal, uploadThread,
+                                &UploadThread::rcvStatusCodeAndMessageSlot);
+                    }
+                    else if(oDownloadThread){
+                        connect((StatusFileRcvThread*)statusFileRcvThread, &StatusFileRcvThread::sendLNSInfSignal, oDownloadThread,
+                                &ODownloadThread::rcvStatusCodeAndMessageSlot);
+                    }
+                    else if(autoConfigThread){
+                        if(fileType == StatusFileRcvThread::LUS){
+                            connect((StatusFileRcvThread*)statusFileRcvThread, &StatusFileRcvThread::sendLUSInfSignal, autoConfigThread,
+                                    &AutoConfigThread::rcvLUSInfSlot);
+                        }
+                        else if(fileType == StatusFileRcvThread::LNS){
+                            connect((StatusFileRcvThread*)statusFileRcvThread, &StatusFileRcvThread::sendLNSInfSignal, autoConfigThread,
+                                    &AutoConfigThread::rcvLNSInfSlot);
+                        }
+                    }
+                    pool.start(statusFileRcvThread);
+                    statusFileRcvThread->setAutoDelete(true);
+                }
+                else{
+                    tftpRequest = threads.at(i)->getTftpRequest();
+                    tftpRequest->setRequestAndPort(datagram, port);    
+                }
                 break;
             }
         }
@@ -794,7 +826,9 @@ void MainWindow::finishInformation(File_LCL* LCL_struct, QString name, QString i
         }
         free(LCL_struct->Hws);
         free(LCL_struct);
-        addLogToDockWidget(INFO_OP_CODE, QString(tr("信息操作完成%1/%2")).arg(++responseDevicesCnt).arg(checkedDevicesCnt));
+        addLogToDockWidget(INFO_OP_CODE,
+                           QString(tr("信息操作完成%1/%2")).arg(++responseDevicesCnt).arg(checkedDevicesCnt),
+                           name + ':' + ip);
     }
     else{
         ++responseDevicesCnt;
@@ -805,6 +839,7 @@ void MainWindow::finishInformation(File_LCL* LCL_struct, QString name, QString i
 }
 
 void MainWindow::enableAllExceptCurrentOperation(bool flag){
+
     ui->deviceListWidget->setEnabled(flag);
     EnableOrdisableExceptFind(flag);
     ui->selectALLOrNotCheckBox->setEnabled(flag);
@@ -820,10 +855,33 @@ void MainWindow::focusOnCurrentOperation(){
 
 void MainWindow::unfocusOnCurrentOperation()
 {
+    qDebug() << "threads.size =" << threads.size();
+    qDebug() << "pool.activeThreadCount =" << pool.activeThreadCount();
+    pool.waitForDone();
+    qDebug() << "pool.activeThreadCount =" << pool.activeThreadCount();
     ui->deviceListWidget->setEnabled(true);
     EnableOrdisableExceptFind(true);
     ui->actionFindOp->setEnabled(true);
     ui->selectALLOrNotCheckBox->setEnabled(true);
+}
+
+void MainWindow::appendBigEndian(void *arg, size_t size, QByteArray &byteArray)
+{
+    for(int i = size - 1; i > -1; i--){
+        byteArray.append(*((char*)arg + i));
+    }
+}
+
+void MainWindow::saveLog()
+{
+    QString log = ui->logTextBrowser->toPlainText();
+    QString currentTime= QDateTime::currentDateTime().toString("yyyy-MM-dd hh-mm");
+    QFile logFile(QString("logFile(%1).txt").arg(currentTime));
+    if(logFile.open(QIODevice::ReadWrite | QIODevice::Append)){
+        QTextStream textStream(&logFile);
+        textStream << log;
+        logFile.close();
+    }
 }
 
 

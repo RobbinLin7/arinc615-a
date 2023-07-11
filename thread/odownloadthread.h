@@ -17,7 +17,7 @@ public:
         status = SEND_LNO_RRQ;
     }
     void run() override;
-    File_LNS* parseLNS(const QByteArray data);
+    static File_LNS* parseLNS(const QByteArray data);
     File_LNL* parseLNL(const QByteArray data);
     void makeLNA();
     ~ODownloadThread(){
@@ -29,8 +29,14 @@ private:
     bool fileListReadable = false;
     QStringList checkedFileList;
     QString errorMessage;
+    QString statusMessage;
+    quint16 statusCode;
+    unsigned int waitTimes;
+    unsigned short totalFileNum = 0;
+    unsigned short transmitFileNum = 1;
 public slots:
     void receiveCheckedFiles(QStringList checkedFileList);
+    void rcvStatusCodeAndMessageSlot(quint16 statusCode, unsigned short totalFileNum, QString statusMessage, bool error, QString errorMessage);
 signals:
     void sendFileList(QList<QPair<QString, QString>>*);
 

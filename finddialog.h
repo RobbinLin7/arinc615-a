@@ -14,6 +14,7 @@ class FindDialog : public QDialog
 
 public:
     explicit FindDialog(QWidget *parent = nullptr, QList<QNetworkAddressEntry>* entryList = nullptr);
+    bool updateEntryList(QList<QNetworkAddressEntry>* entryList = nullptr);
     ~FindDialog();
 signals:
     void on_accpetBtn_clicked(int);

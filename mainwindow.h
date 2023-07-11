@@ -31,6 +31,8 @@
 #include "globalDefine.h"
 #include "paraconfigdialog.h"
 #include "dir.h"
+#include "thread/statusfilercvthread.h"
+#include "protocal/findRequest.h"
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
 QT_END_NAMESPACE
@@ -99,6 +101,8 @@ private:
     void addDevice(const Device&);
     void focusOnCurrentOperation();
     void unfocusOnCurrentOperation();
+    void appendBigEndian(void* arg, size_t size, QByteArray& byteArray);
+    void saveLog();
     QByteArray makeFindRequest();                   //构造FIND请求报文
     void disableAllExceptCurrentOperation(const unsigned int& op_code);
 
@@ -140,7 +144,7 @@ private:
 
     int responseDevicesCnt = 0;                           //记录响应的设备数量
 
-    QTimer *timer = 0;
+    std::shared_ptr<QTimer> timer = nullptr;
 
     QList<QNetworkAddressEntry> *entryList;        //记录本地所有IP信息
 

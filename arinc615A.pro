@@ -45,6 +45,7 @@ SOURCES += \
     thread/mdownloadthread.cpp \
     thread/mythread.cpp \
     thread/odownloadthread.cpp \
+    thread/statusfilercvthread.cpp \
     thread/uploadthread.cpp \
     topology/createtopologyxml.cpp
 HEADERS += \
@@ -70,6 +71,7 @@ HEADERS += \
     protocal/arinc615_global_var_define.h \
     protocal/arinc615_struct_define.h \
     protocal/file_define.h \
+    protocal/findRequest.h \
     protocal/protocalfile.h \
     protocal/utility.h \
     successdialog.h \
@@ -80,6 +82,7 @@ HEADERS += \
     thread/mdownloadthread.h \
     thread/mythread.h \
     thread/odownloadthread.h \
+    thread/statusfilercvthread.h \
     thread/uploadthread.h \
     topology/createtopologyxml.h
 FORMS += \

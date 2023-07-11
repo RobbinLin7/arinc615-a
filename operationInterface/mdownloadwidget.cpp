@@ -82,7 +82,8 @@ void MDownloadWidget::beginMDownload()
             connect((MDownloadThread*)thread,
                     &MDownloadThread::mDownloadStatusMessage,
                     this, [=](QString msg){
-                this->transmitLNSDes(msg, deviceList->at(i)->getDevice()->getName());
+                this->transmitLNSDes(msg, deviceList->at(i)->getDevice()->getName() + ':' +
+                                     deviceList->at(i)->getDeviceIP());
             });
             connect((MDownloadThread*)thread,
                     &MDownloadThread::mDownloadRate,

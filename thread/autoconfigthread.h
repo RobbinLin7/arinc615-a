@@ -46,14 +46,16 @@ private:
 public slots:
     void mainThreadExited(){
         mainThreadExitedOrNot = true;
-        qDebug() << "主线程已经退出了哈哈";
         emit(mainThreadExitedSignal());
     }
+    void rcvLUSInfSlot(quint16 statusCode, QString statusMessage, bool error, QString errorMessage);
+    void rcvLNSInfSlot(quint16 statusCode, quint16 totalFileNum, QString statusMessage, bool error, QString errorMessage);
 
 signals:
     void autoConfigStatusMessage(QString);
     void autoConfigRate(int, bool);
-
+    void sendLUSInfSignal(quint16 statusCode, QString statusMessage, bool error, QString errorMessage);
+    void sendLNSInfSignal(quint16 statusCode, quint16 totalFileNum, QString statusMessage, bool error, QString errorMessage);
 };
 
 #endif // AUTOCONFIGTHREAD_H

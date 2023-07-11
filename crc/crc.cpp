@@ -147,7 +147,6 @@ uint16_t crc16_table(char* buf, size_t len, unsigned short initVal)
     {
         crc = ((crc << 8) ^ crc_table[((crc >> 8) ^ buf[i]) & 0xff]);
     }
-    //qDebug()<<"16进制小写输出"<<QString("%1").arg(crc,4,16,QLatin1Char('0')); //不足8位补0
     return crc;
 
 }

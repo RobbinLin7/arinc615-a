@@ -5,17 +5,8 @@ void AutoConfigThread::run(){
     qDebug() << "AutoConfigThread::run";
     this->tftpClient = new QUdpSocket();
     this->tftpServer = new QUdpSocket();
+
     this->tftpClient->connectToHost(device->getHostAddress(), 69);
-
-    //0uploadThread->setAutoDelete(true);
-#ifdef QT_DEBUG
-    connect(this, &MyThread::mainThreadExitedSignal, this, [=](){
-        qDebug() << "收到信号了haha";
-    });
-    qDebug() << "自动化线程的id是" << QThread::currentThreadId();
-#endif
-
-
     connect((UploadThread*)uploadThread, &UploadThread::uploadResult, this, [=](bool result){
         if(result) uploadComplete = 1;
         else uploadComplete = -1;
@@ -23,6 +14,7 @@ void AutoConfigThread::run(){
     connect((UploadThread*)uploadThread, &UploadThread::uploadStatusMessage, this, [=](QString message){
         emit(autoConfigStatusMessage(message));
     });
+    connect(this, &AutoConfigThread::sendLUSInfSignal, (UploadThread*)uploadThread, &UploadThread::rcvStatusCodeAndMessageSlot);
     //connect((uploadThread*)uploadThread, &UploadThread::)
     //uploadThread->setAutoDelete(true);
     //uploadThread->run();
@@ -36,7 +28,7 @@ void AutoConfigThread::run(){
         emit(threadFinish(true, QString(tr("主线程已退出"))));
         return;
     }
-    if(uploadComplete == -1){
+    if(uploadComplete != 1){
         emit(autoConfigStatusMessage(QString("上传操作出现异常，自动化操作异常退出")));
         emit(autoConfigRate(0, false));
         emit(threadFinish(true, QString(tr("自动化操作异常结束"))));
@@ -51,10 +43,12 @@ void AutoConfigThread::run(){
 
 void AutoConfigThread::startDownload()
 {
-    connect((ODownloadThread*)oDownloadThread, &ODownloadThread::threadFinish, this, [=](bool result, QString info){
+    //uploadThread->disconnect();
+    connect((ODownloadThread*)oDownloadThread, &ODownloadThread::threadFinish, this, [=](bool result){
         if(result)  downloadComplete = 1;
         else downloadComplete = -1;
     }, Qt::QueuedConnection);
+    connect(this, &AutoConfigThread::sendLNSInfSignal, (ODownloadThread*)oDownloadThread, &ODownloadThread::rcvStatusCodeAndMessageSlot);
     connect((ODownloadThread*)oDownloadThread, &ODownloadThread::oDownloadStatusMessage, this, [=](QString message){
         emit(autoConfigStatusMessage(message));
     });
@@ -63,11 +57,12 @@ void AutoConfigThread::startDownload()
     while(downloadComplete == 0 && !mainThreadExitedOrNot){
         QThread::msleep(200);
     }
+    //oDownloadThread->disconnect();
     if(mainThreadExitedOrNot){
         emit(threadFinish(true, QString(tr("主线程已退出"))));
         return;
     }
-    if(downloadComplete == -1){
+    if(downloadComplete != 1){
         emit(autoConfigStatusMessage(QString("下载操作出现异常，自动化操作异常退出")));
         emit(threadFinish(true, QString(tr("自动化操作异常结束"))));
         emit(autoConfigRate(0, false));
@@ -115,16 +110,19 @@ void AutoConfigThread::startCompareMd5()
         file1.close();
         file2.close();
     }
-//    if(errroFiles.size() > 0){
-//        emit(autoConfigStatusMessage(QString(tr("自动化操作-MD5验证有误"))));
-//        emit(autoConfigStatusMessage(QString(tr("出现错误的文件为:")) + errroFiles.join(',')));
-//    }
-//    else{
-//        emit(autoConfigStatusMessage(QString(tr("自动化操作-MD5验证无误"))));
-//        emit(autoConfigStatusMessage(QString(tr("自动化操作完成"))));
-//    }
 
     emit(autoConfigStatusMessage(QString(tr("自动化操作完成"))));
 }
+
+void AutoConfigThread::rcvLUSInfSlot(quint16 statusCode, QString statusMessage, bool error, QString errorMessage)
+{
+    emit(sendLUSInfSignal(statusCode, statusMessage, error, errorMessage));
+}
+
+void AutoConfigThread::rcvLNSInfSlot(quint16 statusCode, quint16 totalFileNum, QString statusMessage, bool error, QString errorMessage)
+{
+    emit(sendLNSInfSignal(statusCode, totalFileNum, statusMessage, error, errorMessage));
+}
+
 
 

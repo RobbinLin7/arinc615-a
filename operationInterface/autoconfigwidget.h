@@ -14,6 +14,7 @@
 #include <QString>
 #include <QStringList>
 #include <QThreadPool>
+#include <QMessageBox>
 class AutoConfigWidget;
 #include "mainwindow.h"
 
@@ -57,6 +58,8 @@ private:
     bool MD5_test(QString filePath1, QString filePath2);
 
     void adjustFileNameColSize();
+
+    bool checkAnyDeviceUnconfig();
 
     QVector<DeviceInfoWidget *> *deviceList;
 

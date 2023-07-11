@@ -12,10 +12,11 @@
 AutoConfigWidget::AutoConfigWidget(QThreadPool* pool, QList<MyThread*> &threads, unsigned int& threadsCnt, QList<const Device*>* devices, QVector<DeviceInfoWidget *> *deviceList, QWidget *parent) :
     QWidget(parent),
     ui(new Ui::AutoConfigWidget),
-    threadsCnt(threadsCnt),
-    threads(threads)
+    threads(threads),
+    threadsCnt(threadsCnt)
 {
     ui->setupUi(this);
+    //ui->beginCfgBtn->setEnabled(false);
     this->pool = pool;
     this->parent = parent;
     this->deviceList = deviceList;
@@ -152,6 +153,19 @@ void AutoConfigWidget::adjustFileNameColSize()
     }
 }
 
+bool AutoConfigWidget::checkAnyDeviceUnconfig()
+{
+    for(int i = 0; i < ui->tableWidget->rowCount(); i++){
+        if(ui->tableWidget->item(i, 2)->text() == QString(tr("请选择文件"))){
+            QMessageBox::critical(this, QString(tr("错误")), QString(tr("设备%1-%2未选择配置文件")).arg(
+                                      ui->tableWidget->item(i, 0)->text()).arg(
+                                      ui->tableWidget->item(i, 1)->text()));
+            return false;
+        }
+    }
+    return true;
+}
+
 void AutoConfigWidget::selectFiles()
 {
     QPushButton *btn = (QPushButton*)sender();
@@ -255,6 +269,8 @@ void AutoConfigWidget::selectFiles()
 void AutoConfigWidget::on_beginCfgBtn_clicked()
 {
 
+    //检查是否有设备为设置配置文件
+    if(!checkAnyDeviceUnconfig()) return;
     //for test
     //AutoConfigProgressDialog* autoConfigProgressDialog = new AutoConfigProgressDialog(this);
     qDebug() << "设备数量: " << this->deviceFileInfo.size();
@@ -269,7 +285,8 @@ void AutoConfigWidget::on_beginCfgBtn_clicked()
         threads.append(thread);
         //threads[threadsCnt] = new AutoConfigThread(it.value(), &it.key(), new TftpRequest());
         connect((AutoConfigThread*)thread, &AutoConfigThread::autoConfigStatusMessage, this, [=](QString message){
-            emit sendAutoConfigStatusMessage(message, it.key().getName());
+            emit sendAutoConfigStatusMessage(message, it.key().getName() + ':' +
+                                             it.key().getHostAddress());
         });
         //autoConfigProgressDialog->addProgressBar((AutoConfigThread*)thread);
         for(int i = 0; i < deviceList->size(); i++){

@@ -80,7 +80,8 @@ bool UploadWidget::beginUpload()
             //void (DeviceInfoWidget::*setProgress1)(const int&) = &DeviceInfoWidget::setProgress;
             connect((UploadThread*)thread, &UploadThread::uploadRate, deviceList->at(i), (newSetProgressType)&DeviceInfoWidget::setProgress);
             connect((UploadThread*)thread, &UploadThread::uploadStatusMessage, this, [=](QString message){
-                emit(uploadStatusMsg(message, deviceList->at(i)->getDevice()->getName()));
+                emit(uploadStatusMsg(message, deviceList->at(i)->getDevice()->getName() + ':' +
+                                     deviceList->at(i)->getDeviceIP()));
             });
             connect((UploadThread*)thread, &UploadThread::threadFinish, this, [=](){
                 if(++finishedThreadCnt == threads.size()){

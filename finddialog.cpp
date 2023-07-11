@@ -20,6 +20,17 @@ FindDialog::FindDialog(QWidget *parent, QList<QNetworkAddressEntry>* entryList) 
     });
 }
 
+bool FindDialog::updateEntryList(QList<QNetworkAddressEntry> *entryList)
+{
+    if(entryList->size() != ui->comboBox->count()){
+        ui->comboBox->clear();
+        int cnt = 0;
+        for(QNetworkAddressEntry entry: *entryList){
+            ui->comboBox->insertItem(cnt++, entry.ip().toString());
+        }
+    }
+}
+
 FindDialog::~FindDialog()
 {
     delete ui;

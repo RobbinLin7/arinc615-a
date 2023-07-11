@@ -31,7 +31,8 @@ ODownloadWidget::ODownloadWidget(QThreadPool *pool, QList<MyThread*>& threads, u
             connect(this, &ODownloadWidget::filesChecked, (ODownloadThread*)thread, &ODownloadThread::receiveCheckedFiles);
             connect((ODownloadThread*)thread, &ODownloadThread::sendFileList, this, &ODownloadWidget::receiveFileList);
             connect((ODownloadThread*)thread, &ODownloadThread::oDownloadStatusMessage, this, [=](QString msg){
-                this->transmitODLNSDes(msg, deviceList->at(i)->getDevice()->getName());
+                this->transmitODLNSDes(msg, deviceList->at(i)->getDevice()->getName() + ':' +
+                                       deviceList->at(i)->getDeviceIP());
             });
             deviceList->at(i)->setProgress(0);
             connect((ODownloadThread*)thread, &ODownloadThread::oDownloadRate, deviceList->at(i), (newSetProgressType)&DeviceInfoWidget::setProgress);

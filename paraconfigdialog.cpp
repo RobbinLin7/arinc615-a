@@ -21,7 +21,7 @@ ParaConfigDialog::ParaConfigDialog(QWidget *parent) :
     //ui->lineEdit->setValidator(new QRegExpValidator(regx, this));
     //最大重传次数设置输入范围：10~30
     //validator1 = new QIntValidator(10, 30, this);
-    ui->maxRetransTimesSpinBox->setRange(10, 30);
+    ui->maxRetransTimesSpinBox->setRange(3, 100);
     //ui->maxRetransTimesSpinBox->setValidator(validator1);
     ui->buttonBox->button(QDialogButtonBox::Ok)->setText(tr("确认"));
     ui->buttonBox->button(QDialogButtonBox::Cancel)->hide();

@@ -12,15 +12,15 @@ void UploadThread::run()
     QString fileName;
     QFile LUR(QString("%1/%2.LUR").arg(dir.dirName(), device->getName()));
     QFile LUH(QString("%1/%2.LUH").arg(dir.dirName(), device->getName()));
-    QFile *LUS;
-    QString statusMessage;
-    uint16 statusCodeFromLUS;
+    //QString statusMessage;
     QByteArray LUR_WRQ;
     QByteArray ack;
-    int filesSent;
     bool flag = false;
     QString errorMessage;
     while(status != END){
+        if(status != WAIT_LUS_WRQ){
+            waitTimes = 0;
+        }
         switch (status) {
         qDebug() << status << "now ";
         case SEND_LUI_RRQ:
@@ -33,67 +33,11 @@ void UploadThread::run()
             emit(uploadStatusMessage(QString(tr("LUI发送完成"))));
             break;
         case WAIT_LUS_WRQ:
-            request = tftpRequest->getRequest(&mainThreadExitedOrNot);
-            if(request.size() == 0){
-                if(mainThreadExitedOrNot){
-                    errorMessage = QString(tr("主线程已退出"));
-                }
-                else{
-                    errorMessage = QString("等待LUS写请求超时");
-                }
+            QThread::msleep(wait_time_ms);
+            waitTimes++;
+            if(waitTimes == max_retrans_times){
                 status = ERROR;
-                break;
-            }
-            port = tftpRequest->getPort();
-            fileName = request.mid(2).split('\0').at(0);
-            tftpServer->disconnectFromHost();
-            tftpServer->connectToHost(device->getHostAddress(), port);
-            tftpRequest->lockMutex();
-            if(!Tftp::receiveFile(tftpServer, QString("%1/%2").arg(dir.dirName(), fileName), &errorMessage, &mainThreadExitedOrNot, Tftp::WRQ)){
-                status = ERROR;
-                break;
-            }
-            LUS = new QFile(QString("%1/%2").arg(dir.dirName(), fileName));
-            if(!LUS->open(QIODevice::ReadOnly)){
-                errorMessage = QString("文件%1打开失败").arg(fileName);
-                status = ERROR;
-                break;
-            }
-            else{
-                QByteArray data = LUS->readAll();
-                File_LUS *LUS_struct = parseLUS(data);
-                statusMessage = QString("设备%1状态信息:%2").arg(device->getName(),
-                                                           QString(LUS_struct->stat_des));
-                emit(uploadStatusMessage(statusMessage));
-                statusCodeFromLUS = LUS_struct->op_stat_code;
-                switch (statusCodeFromLUS) {
-                case 0x0001:
-                    status = SEND_LUR_WRQ;
-                    break;
-                case 0x0002:
-                    status = WAIT_FILE_RRQ;
-                    break;
-                case 0x0003:
-                    emit(uploadStatusMessage(QString("设备%1上传完成").arg(device->getName())));
-                    emit(uploadResult(true));
-                    status = END;
-                    break;
-                case 0x1003:
-                    status = END;
-                    break;
-                case 0x1004:
-                    status = END;
-                    break;
-                case 0x1005:
-                    status = END;
-                    break;
-                default:
-                    status = ERROR;
-                    errorMessage = QString(tr("未定义状态码错误"));
-                    break;
-                }
-                LUS->close();
-                free(LUS_struct);
+                errorMessage = QString(tr("等待LUS状态文件超时"));
             }
             break;
         case SEND_LUR_WRQ:
@@ -161,6 +105,10 @@ void UploadThread::run()
                 status = WAIT_LUS_WRQ;
                 break;
             }
+            else if(fileName.endsWith(".LUH")){
+                status = WAIT_LUH_RRQ;
+                break;
+            }
             tftpRequest->lockMutex();
             tftpServer->disconnectFromHost();
             tftpServer->connectToHost(device->getHostAddress(), port);
@@ -170,18 +118,24 @@ void UploadThread::run()
                         status = ERROR;
                         flag = true;
                     }
+                    if(files_sent[fileName] == false){
+                        fileSentCnt++;
+                        files_sent[fileName] = true;
+                    }
                     break;
                 }
             }
             if(flag) break;
-            if(!files_sent[fileName]) fileSentCnt++;
+            //if(!files_sent[fileName]) fileSentCnt++;
             emit(uploadRate(fileSentCnt * 100 / fileList.size(), true));
             emit(uploadStatusMessage(QString("设备%1: 文件%2上传完成.(%3/%4)")
                                         .arg(device->getName())
                                         .arg(fileName)
                                         .arg(fileSentCnt)
                                         .arg(fileList.size())));
-            files_sent[fileName] = true;
+            //files_sent[fileName] = true;
+            //status = WAIT_LUS_WRQ;
+            QThread::msleep(200);
             break;
         case ERROR:
             emit(uploadStatusMessage(errorMessage));
@@ -192,7 +146,6 @@ void UploadThread::run()
             break;
         case END:
             break;
-
         default:
             break;
         }
@@ -268,13 +221,12 @@ void UploadThread::makeLUH()
         char to_crc[512];
         if(file.open(QIODevice::ReadOnly)){
             LUH_struct.datafile[i].DataFile_Len = file.size();
-//            char* to_crc = (char*)malloc(file.size() * sizeof (char));
-//            memcpy(to_crc, LUH.readAll().data(), file.size());
-//            qDebug() << file.size() << "file size";
-//            LUH_struct.datafile[i].DataFile_CRC = crc16_table(to_crc, file.size(), 0);
             unsigned short crc = 0;
             size_t nBytes;
-            while((nBytes = file.read(to_crc, 512))){
+            memset(to_crc, 0, sizeof(to_crc));
+//            memcpy(to_crc, file.readAll(), file.size());
+//            crc = crc16_table(to_crc, file.size(), 0);
+            while((nBytes = file.read(to_crc, 512)) > 0){
                 crc = crc16_table(to_crc, nBytes, crc);
             }
             LUH_struct.datafile[i].DataFile_CRC = crc;
@@ -325,7 +277,7 @@ void UploadThread::makeLUH()
         LUH.write((char*)&LUH_struct.datafile[i].DataFile_CheckVal, sizeof(LUH_struct.datafile[i].DataFile_CheckVal));
     }
     LUH.flush();
-    char *to_crc = (char * ) malloc(LUH_struct.file_len - 2);
+    char *to_crc = (char *)malloc(LUH_struct.file_len - 2);
     LUH.seek(LUH_struct.file_len - 4);
     LUH_struct.LoadCheckVal_Type = 4;
     LUH.write((char*)&LUH_struct.LoadCheckVal_Type, sizeof(LUH_struct.LoadCheckVal_Type));
@@ -351,6 +303,46 @@ File_LUS* UploadThread::parseLUS(QByteArray data)
     strcpy(LUS->stat_des, QString::fromStdString(data.mid(9, LUS->stat_des_len).toStdString()).toUtf8().data());
     qDebug() << LUS->stat_des;
     return LUS;
+}
+
+void UploadThread::rcvStatusCodeAndMessageSlot(quint16 statusCode, QString statusMessage, bool error, QString errorMessage)
+{
+    this->statusMessage = statusMessage;
+    this->statusCode = statusCode;
+    emit(uploadStatusMessage(statusMessage));
+    if(error == true){
+        status = ERROR;
+        this->errorMessage = errorMessage;
+    }
+    else{
+        qDebug() << "statusCode = " << this->statusCode;
+        switch (this->statusCode) {
+        case 0x0001:
+            status = SEND_LUR_WRQ;
+            break;
+        case 0x0002:
+            status = WAIT_FILE_RRQ;
+            break;
+        case 0x0003:
+            emit(uploadStatusMessage(QString("设备%1上传完成").arg(device->getName())));
+            emit(uploadResult(true));
+            status = END;
+            break;
+        case 0x1003:
+            status = ERROR;
+            break;
+        case 0x1004:
+            status = ERROR;
+            break;
+        case 0x1005:
+            status = ERROR;
+            break;
+        default:
+            status = ERROR;
+            errorMessage = QString(tr("未定义状态码错误"));
+            break;
+        }
+    }
 }
 
 

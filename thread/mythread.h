@@ -44,13 +44,20 @@ public:
     TftpRequest* getTftpRequest(){
         return tftpRequest;
     }
+    const Device* getDevice(){
+        return device;
+    }
 protected:
     const Device* device;
     QUdpSocket* tftpClient;
     QUdpSocket* tftpServer;
     TftpRequest* tftpRequest;
+    QString statusMessage;
+    QString errorMessage;
+    quint16 statusCode;
     QDir dir;
     bool mainThreadExitedOrNot = false;
+
 
 private:
     QMutex mutex;
@@ -63,9 +70,7 @@ public slots:
     void mainThreadExited(){
         QMutexLocker locker(&mutex);
         mainThreadExitedOrNot = true;
-        qDebug() << "主线程已经退出了";
     }
-
 };
 
 #endif // MYTHREAD_H

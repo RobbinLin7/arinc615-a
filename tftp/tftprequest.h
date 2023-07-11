@@ -12,6 +12,9 @@ public:
     TftpRequest(){
         mutex.lock();
     }
+    ~TftpRequest(){
+        mutex.unlock();
+    }
     QByteArray getRequest(){
         QByteArray request;
         return request;
@@ -22,30 +25,19 @@ public:
         if(*mainThreadExitOrNot) return tRequest;
         bool flag = true;
         if(!mutex.tryLock(wait_time_ms)){
-#ifdef  QT_DEBUG
-            qDebug() << "等了一次";
-#endif
             ++wait_times;
-            while(!(*mainThreadExitOrNot) && !mutex.tryLock(wait_time_ms) && wait_times++ < max_retrans_times){
-#ifdef  QT_DEBUG
-                qDebug() << "又等了一次";
-#endif
+            while(!(*mainThreadExitOrNot) && !mutex.tryLock(wait_time_ms) && wait_times++ < max_retrans_times)
+            {
+
             }
             if(*mainThreadExitOrNot) return tRequest;
-            if(wait_times == 11) flag = false;
+            if(wait_times == max_retrans_times + 1) flag = false;
         }
         if(flag){
             tRequest = this->request;
             mutex.unlock();
         }
         return tRequest;
-//        while(!mutex.tryLock(WAIT_TIME_MS))
-//        if(mutex.tryLock(WAIT_TIME_MS * 10)){
-//            request = this->request;
-//            mutex.unlock();
-//        }
-//        //QMutexLocker locker(&mutex);
-//        return request;
     }
     quint16 getPort(){
         QMutexLocker locker(&mutex);
@@ -54,6 +46,7 @@ public:
     void setRequestAndPort(QByteArray request, quint16 port){
         this->request = request;
         this->port = port;
+        //if()
         mutex.tryLock();
         mutex.unlock();
     }

@@ -20,7 +20,8 @@ public:
     void run() override;
     void makeLUR();
     void makeLUH();
-    File_LUS* parseLUS(QByteArray);
+    static File_LUS* parseLUS(QByteArray);
+    enum status_set{SEND_LUI_RRQ, WAIT_LUS_WRQ, SEND_LUR_WRQ, WAIT_LUH_RRQ, WAIT_FILE_RRQ, END, ERROR} status;
 signals:
     void uploadResult(bool);
     void uploadStatusMessage(QString);
@@ -28,15 +29,15 @@ signals:
     void uploadFinish();
 private:
     QStringList fileList;
-    enum status_set{SEND_LUI_RRQ, WAIT_LUS_WRQ, SEND_LUR_WRQ, WAIT_LUH_RRQ, WAIT_FILE_RRQ, END, ERROR} status;
     QMap<QString, bool> files_sent;
     unsigned int fileSentCnt = 0;
+    unsigned int waitTimes = 0;
     bool subOfAuto;
 public slots:
     void mainThreadExited(){
         mainThreadExitedOrNot = true;
-        qDebug() << "主线程已经退出了";
     }
+    void rcvStatusCodeAndMessageSlot(quint16 statusCode, QString statusMessage, bool error, QString errorMessage);
 };
 
 #endif // UPLOADTHREAD_H
