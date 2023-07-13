@@ -7,7 +7,7 @@ namespace GlobalDefine{
 #define FUNC_RETUEN_ERROR           (-1)        //函数错误返回
 
 
-#define MAINWINDOW_TITLE            "加卸载工具(ARINC615ATool-V1.0.18)"
+#define MAINWINDOW_TITLE            "加卸载工具(ARINC615ATool-V1.0.19)"
 #define WINDOW_WIDTH                1500        //界面宽度
 #define WINDOW_HEIGHT               700         //界面高度
 

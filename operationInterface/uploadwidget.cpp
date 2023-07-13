@@ -84,18 +84,16 @@ bool UploadWidget::beginUpload()
                                      deviceList->at(i)->getDeviceIP()));
             });
             connect((UploadThread*)thread, &UploadThread::threadFinish, this, [=](){
-                if(++finishedThreadCnt == threads.size()){
+                if(++finishedThreadCnt == (unsigned int)threads.size()){
                     emit(uploadFinish());
                 }
-            });
-            connect((MainWindow*)parent, &MainWindow::mainThreadExit, this, [=](){
-                qDebug() << "主线程发了退出信号";
             });
             connect((MainWindow*)parent, &MainWindow::mainThreadExit, thread, &MyThread::mainThreadExited);
             pool->start(thread);
             thread->setAutoDelete(true);
         }
     }
+    return true;
 }
 
 void UploadWidget::radioChecked(bool checked, QString fileName){

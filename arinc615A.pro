@@ -47,6 +47,7 @@ SOURCES += \
     thread/odownloadthread.cpp \
     thread/statusfilercvthread.cpp \
     thread/uploadthread.cpp \
+    thread/waitthread.cpp \
     topology/createtopologyxml.cpp
 HEADERS += \
     LEDLight/ledlight.h \
@@ -84,6 +85,7 @@ HEADERS += \
     thread/odownloadthread.h \
     thread/statusfilercvthread.h \
     thread/uploadthread.h \
+    thread/waitthread.h \
     topology/createtopologyxml.h
 FORMS += \
     autoconfigprogressdialog.ui \

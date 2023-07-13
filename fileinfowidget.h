@@ -23,8 +23,9 @@ public:
     QString getFileAbsolutePath();
     Ui::FileInfoWidget *ui;
 private:
-    QFile* file;
+    QFile* file = nullptr;
     QString absolutePath;
+    bool flag = 0;
 signals:
     void selectRadioChecked(bool, QString);
 private slots:

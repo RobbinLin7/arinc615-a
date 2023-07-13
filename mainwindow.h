@@ -33,6 +33,7 @@
 #include "dir.h"
 #include "thread/statusfilercvthread.h"
 #include "protocal/findRequest.h"
+#include "thread/waitthread.h"
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
 QT_END_NAMESPACE
@@ -105,6 +106,10 @@ private:
     void saveLog();
     QByteArray makeFindRequest();                   //构造FIND请求报文
     void disableAllExceptCurrentOperation(const unsigned int& op_code);
+
+    void waitForAllWorkingThreadsDone();
+
+    std::shared_ptr<WaitThread> waitThread = nullptr;
 
     QVector<DeviceInfoWidget *> mDevicesList;       //存放设备列表
 

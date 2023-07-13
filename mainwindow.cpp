@@ -52,10 +52,10 @@ MainWindow::MainWindow(QWidget *parent)
     connect(ui->autoConfigBtn, SIGNAL(clicked()), this, SLOT(execAutoConfigOperation()));
 
     connect(ui->actionToolVersion, &QAction::triggered, this, [=](){
-        QMessageBox::about(this,"About ARINC615ATool","ARINC615ATool V1.0.18 \n新增特性\n"
-                                                      "1.FIND请求包携带超时时间、重传次数、状态文件发送间隔等参数\n"
-                                                      "2.修改了一下闪退BUG\n"
-                                                      "3.添加了日志功能"
+        QMessageBox::about(this,"About ARINC615ATool","ARINC615ATool V1.0.19(2023-07-13) \n新增特性\n"
+                                                      "1.另启线程接收状态文件\n"
+                                                      "2.修改了一些闪退错误\n"
+                                                      "3.每次发现操作都检查是否需要更新当前的IP地址\n"
                                                        );
     });
 
@@ -64,12 +64,10 @@ MainWindow::MainWindow(QWidget *parent)
 
 MainWindow::~MainWindow()
 {
-    qDebug() << pool.activeThreadCount();
     emit(mainThreadExit());
-    qDebug() << "线程是否全部退出" << pool.waitForDone(0);
     saveLog();
-    //SAVE_DIR
     savexml();
+    waitForAllWorkingThreadsDone();
     delete entry;
     delete entryList;
     delete devices;
@@ -495,7 +493,6 @@ void MainWindow::parseFindResponse(){
         }
         QString info = QString::fromStdString(datagram.mid(2).toStdString());
         QStringList deviceInfo;
-        qDebug() << info;
         //首先加上设备端的IP地址
         deviceInfo << remoteAddress.toString();
         //然后获取以0作为间隔的FIND相应内容
@@ -605,7 +602,6 @@ void MainWindow::getAllEntry(){
                     && !entry.ip().toString().startsWith("169.254")){
                 this->entryList->append(entry);
             }
-            qDebug() << entry.ip().toString();
         }
     }
 }
@@ -672,6 +668,13 @@ QByteArray MainWindow::makeFindRequest(){
     appendBigEndian(&req.tftpTimeout, sizeof(req.tftpTimeout), datagram);
     appendBigEndian(&req.lusPeriod, sizeof(req.lusPeriod), datagram);
     return datagram;
+}
+
+void MainWindow::waitForAllWorkingThreadsDone()
+{
+//    waitThread = std::make_shared<WaitThread>(pool);
+//    waitThread->start();
+    pool.waitForDone();
 }
 
 FindDialog *MainWindow::getFindDialogInstance()
@@ -769,7 +772,8 @@ void MainWindow::tftpServerTftpReadReady()
         //在每个数据包前插入两字节的端口号
         tftpServer->readDatagram(datagram.data(), datagram.size(), &remote, &port);
         fileName = datagram.mid(2).split('\0').at(0);
-        for(int i = 0; i < threads.size(); i++){
+        int i;
+        for(i = 0; i < threads.size(); i++){
             if(remote == threads.at(i)->getHostAddress()){
                 if(fileName.endsWith(".LUS") || fileName.endsWith(".LNS")){
                     TftpRequest *tftpRequest = new TftpRequest();
@@ -812,6 +816,9 @@ void MainWindow::tftpServerTftpReadReady()
                 }
                 break;
             }
+        }
+        if(i == threads.size()){
+
         }
     }
 }
@@ -857,7 +864,7 @@ void MainWindow::unfocusOnCurrentOperation()
 {
     qDebug() << "threads.size =" << threads.size();
     qDebug() << "pool.activeThreadCount =" << pool.activeThreadCount();
-    pool.waitForDone();
+
     qDebug() << "pool.activeThreadCount =" << pool.activeThreadCount();
     ui->deviceListWidget->setEnabled(true);
     EnableOrdisableExceptFind(true);

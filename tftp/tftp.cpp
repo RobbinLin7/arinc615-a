@@ -302,7 +302,7 @@ bool Tftp::receiveFile(QUdpSocket *uSock, QString path, QString* errorMessage, e
                 }
                 //uSock->bytesAvailable()
                 data.resize(uSock->pendingDatagramSize());
-                qDebug() << uSock->pendingDatagramSize() << uSock->bytesAvailable();
+                //qDebug() << uSock->pendingDatagramSize() << uSock->bytesAvailable();
                 uSock->read(data.data(), data.size());
                 quint16 high = (unsigned char)data.at(2);
                 quint16 low = (unsigned char)data.at(3);
@@ -395,7 +395,7 @@ bool Tftp::receiveFile(QUdpSocket *uSock, QString path, QString *errorMessage, b
                 }
                 //uSock->bytesAvailable()
                 data.resize(uSock->pendingDatagramSize());
-                qDebug() << uSock->pendingDatagramSize() << uSock->bytesAvailable();
+                //qDebug() << uSock->pendingDatagramSize() << uSock->bytesAvailable();
                 uSock->read(data.data(), data.size());
                 quint16 high = (unsigned char)data.at(2);
                 quint16 low = (unsigned char)data.at(3);
