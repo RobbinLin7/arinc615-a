@@ -9,7 +9,7 @@
 #include <QPushButton>
 #include <QCryptographicHash>
 
-AutoConfigWidget::AutoConfigWidget(QThreadPool* pool, QList<MyThread*> &threads, unsigned int& threadsCnt, QList<const Device*>* devices, QVector<DeviceInfoWidget *> *deviceList, QWidget *parent) :
+AutoConfigWidget::AutoConfigWidget(QThreadPool* pool, QMap<QString, MyThread*> &threads, unsigned int& threadsCnt, QList<const Device*>* devices, QVector<DeviceInfoWidget *> *deviceList, QWidget *parent) :
     QWidget(parent),
     ui(new Ui::AutoConfigWidget),
     threads(threads),
@@ -21,7 +21,8 @@ AutoConfigWidget::AutoConfigWidget(QThreadPool* pool, QList<MyThread*> &threads,
     this->parent = parent;
     this->deviceList = deviceList;
     initTableWidget();
-    threads.erase(threads.begin(), threads.end());
+    //threads.erase(threads.begin(), threads.end());
+    threads.clear();
     for(int i = 0; i < devices->size(); i++){
         addRowItems(devices->at(i)->getName(), devices->at(i)->getHostAddress());
         QStringList filesList;
@@ -282,7 +283,8 @@ void AutoConfigWidget::on_beginCfgBtn_clicked()
         qDebug() << it.key().getHostAddress();
         qDebug() << it.value();
         MyThread* thread = new AutoConfigThread(pool, it.value(), &it.key(), new TftpRequest());
-        threads.append(thread);
+        //threads.append(thread);
+        threads[it.key().getHostAddress()] = thread;
         //threads[threadsCnt] = new AutoConfigThread(it.value(), &it.key(), new TftpRequest());
         connect((AutoConfigThread*)thread, &AutoConfigThread::autoConfigStatusMessage, this, [=](QString message){
             emit sendAutoConfigStatusMessage(message, it.key().getName() + ':' +

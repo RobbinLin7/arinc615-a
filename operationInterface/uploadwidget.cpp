@@ -8,7 +8,7 @@
 #include <QErrorMessage>
 #include "globalDefine.h"
 
-UploadWidget::UploadWidget(QThreadPool *pool, QList<MyThread*>& threads, unsigned int &threadsCnt, QVector<DeviceInfoWidget *> *deviceList, QStringList files, QWidget *parent):
+UploadWidget::UploadWidget(QThreadPool *pool, QMap<QString, MyThread*>& threads, unsigned int &threadsCnt, QVector<DeviceInfoWidget *> *deviceList, QStringList files, QWidget *parent):
     QWidget(parent),
     ui(new Ui::UploadWidget),
     threadsCnt(threadsCnt),
@@ -18,8 +18,8 @@ UploadWidget::UploadWidget(QThreadPool *pool, QList<MyThread*>& threads, unsigne
 {
     ui->setupUi(this);
     this->parent = parent;
-    threads.erase(threads.begin(), threads.end());
-
+    //threads.erase(threads.begin(), threads.end());
+    this->threads.clear();
     this->files = files;
     this->numFilesSelected = 0;
     this->threadsCnt = threadsCnt;
@@ -71,7 +71,8 @@ bool UploadWidget::beginUpload()
     for(int i = 0; i < deviceList->size(); i++){
         if(deviceList->at(i)->checkedOrNot()){
             MyThread* thread = new UploadThread(fileSelected, deviceList->at(i)->getDevice(), new TftpRequest());
-            threads.append(thread);
+            threads[deviceList->at(i)->getDeviceIP()];
+            //threads.append(thread);
             //threads[threadsCnt] = new UploadThread(fileSelected, deviceList->at(i)->getDevice(), new TftpRequest(), this);
             //这里可以连接信号槽
             const Device *device = deviceList->at(i)->getDevice();

@@ -16,8 +16,8 @@ void StatusFileRcvThread::run()
     quint16 port = tftpRequest->getPort();
     QString fileName = request.mid(2).split('\0').at(0);
     QString statusMessage;
-    uint16 statusCode;
-    unsigned short totalFileNum;
+    uint16 statusCode = 0;
+    unsigned short totalFileNum = 0;
     tftpServer->disconnectFromHost();
     tftpServer->connectToHost(device->getHostAddress(), port);
     tftpRequest->lockMutex();
@@ -51,11 +51,13 @@ void StatusFileRcvThread::run()
         dataFileStruct = nullptr;
     }
     if(statusFileType == LUS){
-        emit(sendLUSInfSignal(statusCode, statusMessage, error, errorMessage));
+        emit sendLUSInfSignal(statusCode, statusMessage, error, errorMessage);
     }
     else{
-        emit(sendLNSInfSignal(statusCode, totalFileNum, statusMessage, error, errorMessage));
+        emit sendLNSInfSignal(statusCode, totalFileNum, statusMessage, error, errorMessage);
     }
+    //using namespace GlobalDefine;
+    emit statusMessageSignal(STATUSFILE_RECEIVE_OP_CODE, statusMessage, device ? device->getName() : "");
 }
 
 void StatusFileRcvThread::handleLNS()

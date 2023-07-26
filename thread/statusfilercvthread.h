@@ -4,6 +4,7 @@
 #include "thread/mythread.h"
 #include "thread/uploadthread.h"
 #include "thread/odownloadthread.h"
+#include "globalDefine.h"
 
 class StatusFileRcvThread : public MyThread
 {
@@ -29,6 +30,7 @@ private:
 signals:
     void sendLNSInfSignal(quint16, quint16, QString, bool, QString);
     void sendLUSInfSignal(quint16, QString, bool, QString);
+    void statusMessageSignal(const int& operationCode, const QString log, const QString deviceName);
     //void sendStatusCodeAndMessageSignal(quint16, QString, bool, QString);
 };
 

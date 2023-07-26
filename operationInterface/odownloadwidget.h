@@ -20,7 +20,7 @@ class ODownloadWidget : public QWidget
     Q_OBJECT
 
 public:
-    explicit ODownloadWidget(QThreadPool* pool, QList<MyThread*>& threads, unsigned int& threadsCnt, QVector<DeviceInfoWidget *> *deviceList, QWidget *parent = nullptr);
+    explicit ODownloadWidget(QThreadPool* pool, QMap<QString, MyThread*>& threads, unsigned int& threadsCnt, QVector<DeviceInfoWidget *> *deviceList, QWidget *parent = nullptr);
     ~ODownloadWidget();
 
 private:
@@ -28,7 +28,7 @@ private:
     QVector<DeviceInfoWidget *>* deviceList;
     const Device* device;
     //MyThread** threads;
-    QList<MyThread*> &threads;
+    QMap<QString, MyThread*> &threads;
     QThreadPool *pool;
     QVector<FileInfoWidget *> mFilesList;           //存放文件列表
     int numFilesSelected = 0;

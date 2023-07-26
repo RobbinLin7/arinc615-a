@@ -31,14 +31,37 @@ void ODownloadThread::run()
             emit(oDownloadStatusMessage(tr("LNO接收完成")));
             status = WAIT_LNS_WRQ;
             break;
-        case WAIT_LNS_WRQ:
-            QThread::msleep(20);
-            waitTimes++;
-            if(waitTimes == max_retrans_times * wait_time_ms / 20){
+        case WAIT_LNS_WRQ:{
+//            QThread::msleep(20);
+//            waitTimes++;
+//            if(waitTimes == max_retrans_times * wait_time_ms / 20){
+//                status = ERROR;
+//                errorMessage = QString(tr("等待LNS状态文件超时"));
+//            }
+
+            while(waitTimes < max_retrans_times){
+                mutexOfStatusModified.lock();
+                if(statusModified == true){
+                    statusModified = false;
+                    mutexOfStatusModified.unlock();
+                    break;
+                }
+                else{
+                    mutexOfStatusModified.unlock();
+                    QThread::sleep(wait_time_ms);
+                    ++waitTimes;
+                }
+
+            }
+            if(waitTimes == max_retrans_times){
                 status = ERROR;
                 errorMessage = QString(tr("等待LNS状态文件超时"));
             }
+            waitTimes = 0;
             break;
+
+
+        }
         case WAIT_LNL_WRQ:
             request = tftpRequest->getRequest(&mainThreadExitedOrNot);
             if(request.size() == 0){
@@ -143,16 +166,24 @@ void ODownloadThread::run()
                 status = ERROR;
                 break;
             }
-            status = WAIT_LNS_WRQ;
+
             //数据文件
             //transmitFileNum++;
             emit oDownloadStatusMessage(QString("设备%1: 文件%2下载完成.(%3/%4)")
                                         .arg(device->getName())
                                         .arg(fileName)
-                                        .arg(transmitFileNum)
+                                        .arg(++transmitFileNum)
                                         .arg(totalFileNum));
-            emit oDownloadRate(100 * transmitFileNum++ / totalFileNum, true);
-
+            emit oDownloadRate(100 * transmitFileNum / totalFileNum, true);
+            //多线程访问临界变量statusModified，加锁同步
+            mutexOfStatusModified.lock();
+            if(statusModified == false){
+                status = WAIT_LNS_WRQ;
+            }
+            else{
+                statusModified = false;
+            }
+            mutexOfStatusModified.unlock();
             break;
         }
         case ERROR:

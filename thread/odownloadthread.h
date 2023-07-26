@@ -33,7 +33,7 @@ private:
     quint16 statusCode;
     unsigned int waitTimes;
     unsigned short totalFileNum = 0;
-    unsigned short transmitFileNum = 1;
+    unsigned short transmitFileNum = 0;
 public slots:
     void receiveCheckedFiles(QStringList checkedFileList);
     void rcvStatusCodeAndMessageSlot(quint16 statusCode, unsigned short totalFileNum, QString statusMessage, bool error, QString errorMessage);

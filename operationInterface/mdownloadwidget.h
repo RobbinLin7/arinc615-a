@@ -19,7 +19,7 @@ class MDownloadWidget : public QWidget
     Q_OBJECT
 
 public:
-    explicit MDownloadWidget(QThreadPool *pool, QList<MyThread*> &threads, unsigned int &threadsCnt, QVector<DeviceInfoWidget *> *deviceList, QString folderPath, QWidget *parent = nullptr);
+    explicit MDownloadWidget(QThreadPool *pool, QMap<QString, MyThread*> &threads, unsigned int &threadsCnt, QVector<DeviceInfoWidget *> *deviceList, QString folderPath, QWidget *parent = nullptr);
     ~MDownloadWidget();
 
 private:
@@ -28,7 +28,7 @@ private:
     QVector<FileInfoWidget *> mFilesList;           //存放文件列表
     QVector<DeviceInfoWidget*> *deviceList;
     //MyThread** threads;
-    QList<MyThread*> &threads;
+    QMap<QString, MyThread*> &threads;
     QThreadPool *pool;
     QStringList checkedFileList;
     int numFilesSelected = 0;

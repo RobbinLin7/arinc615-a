@@ -21,7 +21,7 @@ class MyThread : public QObject, public QRunnable
 {
     Q_OBJECT
 public:
-    MyThread(const Device* device, TftpRequest* tftpRequest, QObject* parent = nullptr):QObject(nullptr),
+    MyThread(const Device* device, TftpRequest* tftpRequest, QObject* parent = nullptr):QObject(parent),
         device(device),tftpRequest(tftpRequest){
         //创建一个虚拟连接，只接受目的设备端发来的信息
         QDir tmpDir(QDir::currentPath() + "/" + device->getName() + "_" + device->getHostAddress());
@@ -57,10 +57,13 @@ protected:
     quint16 statusCode;
     QDir dir;
     bool mainThreadExitedOrNot = false;
+    bool statusModified = false;
+    QMutex mutexOfStatusModified;
 
 
 private:
     QMutex mutex;
+
 
 signals:
     void threadFinish(bool status, QString info);

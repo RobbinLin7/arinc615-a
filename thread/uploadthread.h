@@ -33,6 +33,7 @@ private:
     unsigned int fileSentCnt = 0;
     unsigned int waitTimes = 0;
     bool subOfAuto;
+
 public slots:
     void mainThreadExited(){
         mainThreadExitedOrNot = true;

@@ -20,9 +20,14 @@ MainWindow::MainWindow(QWidget *parent)
     this->entryList = new QList<QNetworkAddressEntry>();
     userProfile = QProcessEnvironment::systemEnvironment().value("userprofile");
     qDebug() << entryList->size() << "entryList size";
-    tftpServer = new QUdpSocket(this);
-    tftpServer->bind(QHostAddress::AnyIPv4, 8888, QAbstractSocket::ShareAddress);
-    connect(tftpServer, &QUdpSocket::readyRead, this, &MainWindow::tftpServerTftpReadReady);
+    //启动tftp服务器线程，用于监听服务器请求
+    tftpServerThread = std::shared_ptr<TftpServerThread>(new TftpServerThread());
+    connect(this, &MainWindow::tftpServerThreadExitSignal, tftpServerThread.get(), &TftpServerThread::onRcvThreadExitSig);
+    connect(tftpServerThread.get(), &TftpServerThread::requestReceivedSignal, this, &MainWindow::onRequestReceived);
+    tftpServerThread->start();
+//    tftpServer = new QUdpSocket(this);
+//    tftpServer->bind(QHostAddress::AnyIPv4, 8888, QAbstractSocket::ShareAddress);
+//    connect(tftpServer, &QUdpSocket::readyRead, this, &MainWindow::tftpServerTftpReadReady);
 
     initMainWindow();
     //触发加卸载操作的connect函数
@@ -65,12 +70,14 @@ MainWindow::MainWindow(QWidget *parent)
 MainWindow::~MainWindow()
 {
     emit(mainThreadExit());
+    emit(findThreadExitSignal());
+    emit(tftpServerThreadExitSignal());
     saveLog();
     savexml();
     waitForAllWorkingThreadsDone();
     delete entry;
     delete entryList;
-    delete devices;
+//    delete devices;
     delete checkedDevices;
     delete ui;
 }
@@ -141,7 +148,8 @@ void MainWindow::execInformationOperation()
 {
     responseDevicesCnt = 0;
     threadsCnt = 0;
-    threads.erase(threads.begin(), threads.end());
+    threads.clear();
+    //threads.erase(threads.begin(), threads.end());
     addLogToDockWidget(INFO_OP_CODE, "开始信息操作");
     focusOnCurrentOperation();
     mInformationWidget = std::make_shared<InformationWidget>(this);//初始化information界面
@@ -154,7 +162,8 @@ void MainWindow::execInformationOperation()
     for(int i = 0; i < deviceCnt; i++){
         if(mDevicesList.at(i)->checkedOrNot()){
             MyThread* thread = new InformationThread(mDevicesList.at(i)->getDevice(), new TftpRequest());
-            threads.append(thread);
+            threads[mDevicesList.at(i)->getDeviceIP()] = thread;
+            //threads.append(thread);
             connect((InformationThread*)thread, &InformationThread::informationFinished, this, &MainWindow::finishInformation);
             connect((InformationThread*)thread, &InformationThread::informationFinished, mDevicesList.at(i), [=](File_LCL* LCL_struct){
                if(LCL_struct != NULL){
@@ -309,7 +318,8 @@ void MainWindow::execParaConfigOperation()
         wait_time_ms = wtms;
         state_file_send_interval = sfsi;
     });
-    paraConfigDialog->show();
+    paraConfigDialog->exec();
+    //paraConfigDialog->show();
 }
 
 //==================================================================
@@ -477,67 +487,94 @@ void MainWindow::addLogToDockWidget(const int &operationCode, const QString log,
     else ui->logTextBrowser->append(currentTime + " " + info);
 }
 
-
-void MainWindow::parseFindResponse(){
-    while(uSock->hasPendingDatagrams()){
-        QByteArray datagram;
-        QHostAddress remoteAddress;
-        //让datagrama的大小为等待处理的数据包的大小，这样才能接收到完整的数据
-        datagram.resize(uSock->pendingDatagramSize());
-        //接收数据报，将其存放到datagram中
-        uSock->readDatagram(datagram.data(), datagram.size(), &remoteAddress);
-        datagram = datagram.trimmed();
-        //去掉FIND相应报文的头部，获取内容
-        if(datagram.size() < 2 || strcmp(datagram.left(2).data(), "\x02\x00")){
-            return;
-        }
-        QString info = QString::fromStdString(datagram.mid(2).toStdString());
-        QStringList deviceInfo;
-        //首先加上设备端的IP地址
-        deviceInfo << remoteAddress.toString();
-        //然后获取以0作为间隔的FIND相应内容
-        deviceInfo << info.split('\0');
-        //去掉所有的空字符串项和非字符项
-        int i = 0;
-        for(; i < deviceInfo.size(); i++){
-            if(deviceInfo[i] == "") {
-                deviceInfo.removeAt(i);
-                i = -1;
-            }
-            else{
-                for(int j = 0; j < deviceInfo[i].size(); j++){
-                    if(deviceInfo[i][j] < 32 || deviceInfo[i][j] > 126){
-                        deviceInfo.removeAt(i);
-                        break;
-                        i = -1;
-                    }
-                }
-            }
-        }
-
-
-        if(deviceInfo.size() == 6){
-            deviceCnt++;
-            mFindInfoWidget->insertDeviceInfo(deviceInfo);
-            Device device(remoteAddress.toString(), deviceInfo[1], deviceInfo[2], deviceInfo[3], deviceInfo[4], deviceInfo[5]);
-            devices->append(device);
-            createDeviceWidget(devices->last());
-            //devices->append(Device(remoteAddress.toString(), deviceInfo[1], deviceInfo[2], deviceInfo[3], deviceInfo[4], deviceInfo[5]));
-        }
-        qDebug() << deviceInfo;
+void MainWindow::onDeviceFound(const QStringList &deviceInfo)
+{
+    if(deviceInfo.size() == 6){
+        deviceCnt++;
+        mFindInfoWidget->insertDeviceInfo(deviceInfo);
+        Device* device = new Device(deviceInfo[0], deviceInfo[1], deviceInfo[2], deviceInfo[3], deviceInfo[4], deviceInfo[5]);
+        devices.insert(device->getHostAddress(), device);
+        //devices->append(device);
+        createDeviceWidget(*device);
+    }
+    else{
+        this->addLogToDockWidget(FIND_OP_CODE, QString("find响应报文格式有误"));
     }
 }
 
+void MainWindow::onRequestReceived(const QByteArray &tftpRequestDatagram, const QHostAddress& remote, const quint16 port)
+{
+    QString fileName = tftpRequestDatagram.mid(2).split('\0').at(0);
+    MyThread* thread = threads.contains(remote.toString()) ? threads.value(remote.toString()) : nullptr;
+    TftpRequest* tftpRequest = nullptr;
+    if(fileName.endsWith(".LUS") || fileName.endsWith(".LNS")){
+        tftpRequest = new TftpRequest();
+        //MyThread* thread = threads.value(remote.toString());
+        StatusFileRcvThread::StatusFileType fileType;
+        if(fileName.endsWith(".LUS")) {
+            fileType = StatusFileRcvThread::LUS;
+        }
+        else{
+            fileType = StatusFileRcvThread::LNS;
+        }
+        tftpRequest->setRequestAndPort(tftpRequestDatagram, port);
+        MyThread* statusFileRcvThread = new StatusFileRcvThread(fileType,
+                                                                tftpRequest,
+                                                                thread ? thread->getDevice() : devices.value(remote.toString()),
+                                                                this);
 
-void MainWindow::onTimerTimeout(){
-    steps++;
+        if(thread != nullptr){
+            UploadThread* uploadThread = dynamic_cast<UploadThread*>(thread);
+            ODownloadThread* oDownloadThread = dynamic_cast<ODownloadThread*>(thread);
+            AutoConfigThread* autoConfigThread = dynamic_cast<AutoConfigThread*>(thread);
+            if(uploadThread){
+                connect((StatusFileRcvThread*)statusFileRcvThread, &StatusFileRcvThread::sendLUSInfSignal, uploadThread,
+                        &UploadThread::rcvStatusCodeAndMessageSlot);
+            }
+            else if(oDownloadThread){
+                connect((StatusFileRcvThread*)statusFileRcvThread, &StatusFileRcvThread::sendLNSInfSignal, oDownloadThread,
+                        &ODownloadThread::rcvStatusCodeAndMessageSlot);
+            }
+            else if(autoConfigThread){
+                if(fileType == StatusFileRcvThread::LUS){
+                    connect((StatusFileRcvThread*)statusFileRcvThread, &StatusFileRcvThread::sendLUSInfSignal, autoConfigThread,
+                            &AutoConfigThread::rcvLUSInfSlot);
+                }
+                else if(fileType == StatusFileRcvThread::LNS){
+                    connect((StatusFileRcvThread*)statusFileRcvThread, &StatusFileRcvThread::sendLNSInfSignal, autoConfigThread,
+                            &AutoConfigThread::rcvLNSInfSlot);
+                }
+            }
+        }
+        else{
+           connect(static_cast<StatusFileRcvThread*>(statusFileRcvThread), &StatusFileRcvThread::statusMessageSignal, this, (void (MainWindow::*)(const int &operationCode, const QString log, const QString deviceName))&MainWindow::addLogToDockWidget);
+        }
+        pool.start(statusFileRcvThread);
+        statusFileRcvThread->setAutoDelete(true);
+    }
+    else{
+        tftpRequest = threads.value(remote.toString())->getTftpRequest();
+        tftpRequest->setRequestAndPort(tftpRequestDatagram, port);
+    }
+//    TftpRequest* tftpRequest = nullptr;
+//    QString fileName = tftpRequestDatagram.mid(2).split('\0').at(0);
+//    if(threads.contains(remote.toString())){
+
+//    }
+//    else{
+//        TftpRequest *tftpRequest = new TftpRequest();
+//    }
+}
+
+
+
+void MainWindow::onTimerTimeout(const unsigned int steps){
     progressDialog->setValue(steps);
     if(steps > (unsigned int)progressDialog->maximum() || progressDialog->wasCanceled()){
-        disconnect(uSock, &QUdpSocket::readyRead, this, &MainWindow::parseFindResponse);
-        timer->stop();
-        delete uSock;
-        steps = 0;
-        delete progressDialog;
+        //disconnect(uSock, &QUdpSocket::readyRead, this, &MainWindow::parseFindResponse);
+        emit(findThreadExitSignal());
+        //timer->stop();
+        //delete progressDialog;
         qDebug() << "find time off";
         //解除计时器信号槽并暂停计时器
         qDebug() << "disconnect success";
@@ -549,15 +586,19 @@ void MainWindow::onTimerTimeout(){
         //绘制XML
 #if 1
         a615_targets_find_list_t findList;
-        findList.device_num = devices->size();
-        findList.targets_info = (a615_target_find_info_t*)malloc(sizeof(a615_target_find_info_t) * devices->size());
+        findList.device_num = devices.size();
+        findList.targets_info = (a615_target_find_info_t*)malloc(sizeof(a615_target_find_info_t) * devices.size());
+        size_t i = 0;
+        for(const auto &device : devices){
+            strcpy(findList.targets_info[i].ip_addr, device->getHostAddress().toUtf8().data());
+            strcpy(findList.targets_info[i].identifier, device->getName().toUtf8().data());
+            strcpy(findList.targets_info[i].type_name, device->getHardwareType().toUtf8().data());
+            strcpy(findList.targets_info[i].position, device->getPosition().toUtf8().data());
+            strcpy(findList.targets_info[i].literal_name, device->getLiteralName().toUtf8().data());
+            strcpy(findList.targets_info[i].manufacture_code, device->getManufactureCode().toUtf8().data());
+        }
         for(uint i = 0; i < findList.device_num; i++){
-            strcpy(findList.targets_info[i].ip_addr, devices->at(i).getHostAddress().toUtf8().data());
-            strcpy(findList.targets_info[i].identifier, devices->at(i).getName().toUtf8().data());
-            strcpy(findList.targets_info[i].type_name, devices->at(i).getHardwareType().toUtf8().data());
-            strcpy(findList.targets_info[i].position, devices->at(i).getPosition().toUtf8().data());
-            strcpy(findList.targets_info[i].literal_name, devices->at(i).getLiteralName().toUtf8().data());
-            strcpy(findList.targets_info[i].manufacture_code, devices->at(i).getManufactureCode().toUtf8().data());
+
         }
         if(CreateTopologyXML::createTopologyXMLFile("../topology.xml", findList, entry->ip().toString())){
             qDebug() << "XML写入完成";
@@ -611,14 +652,13 @@ void MainWindow::find(int index){
     ui->selectALLOrNotCheckBox->setChecked(false);
     deviceCnt = 0;
     EnableOrdisableExceptFind(false);
-    if(devices){
-        devices->clear();
+    if(devices.size() > 0){
+        devices.clear();
         //mFindInfoWidget->clearTableWidget();
-        qDebug() << devices->size();
     }
-    else{
-        devices = new QList<Device>();
-    }
+//    else{
+//        devices = new QList<Device>();
+//    }
     checkedDevicesCnt = 0;
     checkedDevices->clear();
     entry = new QNetworkAddressEntry(entryList->at(index));
@@ -631,7 +671,7 @@ void MainWindow::find(int index){
         layout->addWidget(mFindInfoWidget.get());
     }
     operationWidget = mFindInfoWidget;
-    progressDialog = new QProgressDialog(tr("发现操作进度"), tr("取消"), 0, 100, this);
+    progressDialog = std::shared_ptr<QProgressDialog>(new QProgressDialog(tr("发现操作进度"), tr("取消"), 0, 100, this));
     progressDialog->setWindowTitle(tr("设备发现进度"));
     progressDialog->setWindowModality(Qt::WindowModal);
     progressDialog->show();
@@ -643,13 +683,18 @@ void MainWindow::find(int index){
     //构造FIND请求报文
     QByteArray datagram = makeFindRequest();
     //发送FIND请求报文
-    uSock = new QUdpSocket(this);
-    uSock->bind(QHostAddress::AnyIPv4, 0, QUdpSocket::ShareAddress);
-    uSock->writeDatagram(datagram.data(), datagram.size(), entry->broadcast(), 1001);
-    //在规定时间内接收FIND响应包
-    connect(uSock, &QUdpSocket::readyRead, this, &MainWindow::parseFindResponse);
-    connect(timer.get(), &QTimer::timeout, this, &MainWindow::onTimerTimeout);
-    timer->start(max_find_response_time_ms / 100);
+    findThread = std::shared_ptr<FindThread>(new FindThread(entry));
+    connect(findThread.get(), &FindThread::deviceFoundSignal, this, &MainWindow::onDeviceFound);
+    connect(findThread.get(), &FindThread::timerTimeOutSignal, this, &MainWindow::onTimerTimeout);
+    connect(this, &MainWindow::findThreadExitSignal, findThread.get(), &FindThread::onRcvThreadExitSig);
+    findThread->start();
+//    uSock = new QUdpSocket(this);
+//    uSock->bind(QHostAddress::AnyIPv4, 0, QUdpSocket::ShareAddress);
+//    uSock->writeDatagram(datagram.data(), datagram.size(), entry->broadcast(), 1001);
+//    //在规定时间内接收FIND响应包
+//    //connect(uSock, &QUdpSocket::readyRead, this, &MainWindow::parseFindResponse);
+//    connect(timer.get(), &QTimer::timeout, this, &MainWindow::onTimerTimeout);
+//    timer->start(max_find_response_time_ms / 100);
 }
 
 QByteArray MainWindow::makeFindRequest(){
@@ -762,65 +807,7 @@ void MainWindow::execAutoConfigOperation()
 
 void MainWindow::tftpServerTftpReadReady()
 {
-    while(tftpServer->hasPendingDatagrams()){
-        QHostAddress remote;
-        quint16 port;
-        QByteArray datagram;
-        QString fileName;
-        datagram.resize(tftpServer->pendingDatagramSize());
-        TftpRequest* tftpRequest = nullptr;
-        //在每个数据包前插入两字节的端口号
-        tftpServer->readDatagram(datagram.data(), datagram.size(), &remote, &port);
-        fileName = datagram.mid(2).split('\0').at(0);
-        int i;
-        for(i = 0; i < threads.size(); i++){
-            if(remote == threads.at(i)->getHostAddress()){
-                if(fileName.endsWith(".LUS") || fileName.endsWith(".LNS")){
-                    TftpRequest *tftpRequest = new TftpRequest();
-                    StatusFileRcvThread::StatusFileType fileType;
-                    if(fileName.endsWith(".LUS")) {
-                        fileType = StatusFileRcvThread::LUS;
-                    }
-                    else{
-                        fileType = StatusFileRcvThread::LNS;
-                    }
-                    tftpRequest->setRequestAndPort(datagram, port);
-                    MyThread* statusFileRcvThread = new StatusFileRcvThread(fileType, tftpRequest, threads.at(i)->getDevice(), this);
-                    UploadThread* uploadThread = dynamic_cast<UploadThread*>(threads.at(i));
-                    ODownloadThread* oDownloadThread = dynamic_cast<ODownloadThread*>(threads.at(i));
-                    AutoConfigThread* autoConfigThread = dynamic_cast<AutoConfigThread*>(threads.at(i));
-                    if(uploadThread){
-                        connect((StatusFileRcvThread*)statusFileRcvThread, &StatusFileRcvThread::sendLUSInfSignal, uploadThread,
-                                &UploadThread::rcvStatusCodeAndMessageSlot);
-                    }
-                    else if(oDownloadThread){
-                        connect((StatusFileRcvThread*)statusFileRcvThread, &StatusFileRcvThread::sendLNSInfSignal, oDownloadThread,
-                                &ODownloadThread::rcvStatusCodeAndMessageSlot);
-                    }
-                    else if(autoConfigThread){
-                        if(fileType == StatusFileRcvThread::LUS){
-                            connect((StatusFileRcvThread*)statusFileRcvThread, &StatusFileRcvThread::sendLUSInfSignal, autoConfigThread,
-                                    &AutoConfigThread::rcvLUSInfSlot);
-                        }
-                        else if(fileType == StatusFileRcvThread::LNS){
-                            connect((StatusFileRcvThread*)statusFileRcvThread, &StatusFileRcvThread::sendLNSInfSignal, autoConfigThread,
-                                    &AutoConfigThread::rcvLNSInfSlot);
-                        }
-                    }
-                    pool.start(statusFileRcvThread);
-                    statusFileRcvThread->setAutoDelete(true);
-                }
-                else{
-                    tftpRequest = threads.at(i)->getTftpRequest();
-                    tftpRequest->setRequestAndPort(datagram, port);    
-                }
-                break;
-            }
-        }
-        if(i == threads.size()){
 
-        }
-    }
 }
 
 void MainWindow::finishInformation(File_LCL* LCL_struct, QString name, QString ip)

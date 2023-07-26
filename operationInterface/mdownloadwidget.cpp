@@ -7,14 +7,15 @@
 #include <QFileDialog>
 #include <QMessageBox>
 
-MDownloadWidget::MDownloadWidget(QThreadPool *pool, QList<MyThread*>& threads, unsigned int &threadsCnt, QVector<DeviceInfoWidget *> *deviceList, QString folderPath, QWidget *parent) :
+MDownloadWidget::MDownloadWidget(QThreadPool *pool, QMap<QString, MyThread*>& threads, unsigned int &threadsCnt, QVector<DeviceInfoWidget *> *deviceList, QString folderPath, QWidget *parent) :
     QWidget(parent),
     ui(new Ui::MDownloadWidget),
     threads(threads),
     threadsCnt(threadsCnt)
 
 {
-    threads.erase(threads.begin(), threads.end());
+    //threads.erase(threads.begin(), threads.end());
+    threads.clear();
     ui->setupUi(this);
     this->folderPath = folderPath;
     this->deviceList = deviceList;
@@ -77,7 +78,8 @@ void MDownloadWidget::beginMDownload()
             MyThread* thread = new MDownloadThread(checkedFileList,
                                                    deviceList->at(i)->getDevice(),
                                                    new TftpRequest());
-            threads.append(thread);
+            threads[deviceList->at(i)->getDeviceIP()] = thread;
+            //threads.append(thread);
             deviceList->at(i)->setProgress(0);
             connect((MDownloadThread*)thread,
                     &MDownloadThread::mDownloadStatusMessage,

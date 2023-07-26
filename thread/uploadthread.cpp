@@ -33,12 +33,32 @@ void UploadThread::run()
             emit(uploadStatusMessage(QString(tr("LUI发送完成"))));
             break;
         case WAIT_LUS_WRQ:
-            QThread::msleep(wait_time_ms);
-            waitTimes++;
+//            QThread::msleep(wait_time_ms);
+//            waitTimes++;
+//            if(waitTimes == max_retrans_times){
+//                status = ERROR;
+//                errorMessage = QString(tr("等待LUS状态文件超时"));
+//            }
+//            break;
+
+            while(waitTimes < max_retrans_times){
+                mutexOfStatusModified.lock();
+                if(statusModified == true){
+                    statusModified = false;
+                    mutexOfStatusModified.unlock();
+                    break;
+                }
+                else{
+                    mutexOfStatusModified.unlock();
+                    QThread::sleep(wait_time_ms);
+                    ++waitTimes;
+                }
+            }
             if(waitTimes == max_retrans_times){
                 status = ERROR;
                 errorMessage = QString(tr("等待LUS状态文件超时"));
             }
+            waitTimes = 0;
             break;
         case SEND_LUR_WRQ:
             makeLUR();
@@ -133,9 +153,20 @@ void UploadThread::run()
                                         .arg(fileName)
                                         .arg(fileSentCnt)
                                         .arg(fileList.size())));
+
+            if(fileSentCnt == fileList.size()){
+                mutexOfStatusModified.lock();
+                if(statusModified == false){
+                    status = WAIT_LUS_WRQ;
+                }
+                else{
+                    statusModified = false;
+                }
+                mutexOfStatusModified.unlock();
+            }
             //files_sent[fileName] = true;
             //status = WAIT_LUS_WRQ;
-            QThread::msleep(200);
+            //QThread::msleep(200);
             break;
         case ERROR:
             emit(uploadStatusMessage(errorMessage));
@@ -316,6 +347,8 @@ void UploadThread::rcvStatusCodeAndMessageSlot(quint16 statusCode, QString statu
     }
     else{
         qDebug() << "statusCode = " << this->statusCode;
+        mutexOfStatusModified.lock();
+        statusModified = true;
         switch (this->statusCode) {
         case 0x0001:
             status = SEND_LUR_WRQ;
@@ -342,6 +375,7 @@ void UploadThread::rcvStatusCodeAndMessageSlot(quint16 statusCode, QString statu
             errorMessage = QString(tr("未定义状态码错误"));
             break;
         }
+        mutexOfStatusModified.unlock();
     }
 }
 

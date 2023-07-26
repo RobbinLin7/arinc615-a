@@ -27,7 +27,7 @@ class AutoConfigWidget : public QWidget
     Q_OBJECT
 
 public:
-    explicit AutoConfigWidget(QThreadPool* pool, QList<MyThread*> &threads, unsigned int &threadsCnt, QList<const Device*>* devices, QVector<DeviceInfoWidget *> *deviceList,QWidget *parent = nullptr);
+    explicit AutoConfigWidget(QThreadPool* pool, QMap<QString, MyThread*> &threads, unsigned int &threadsCnt, QList<const Device*>* devices, QVector<DeviceInfoWidget *> *deviceList,QWidget *parent = nullptr);
     ~AutoConfigWidget();
 
     void initTableWidget();
@@ -43,7 +43,7 @@ private:
 
     unsigned int finishedThreadCnt = 0;
 
-    QList<MyThread*> &threads;
+    QMap<QString, MyThread*> &threads;
 
     unsigned int& threadsCnt;
 

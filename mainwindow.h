@@ -34,6 +34,8 @@
 #include "thread/statusfilercvthread.h"
 #include "protocal/findRequest.h"
 #include "thread/waitthread.h"
+#include "thread/findthread.h"
+#include "thread/tftpserverthread.h"
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
 QT_END_NAMESPACE
@@ -71,9 +73,9 @@ private slots:
 
     void selectAllDeviceOrNot(bool checked);
 
-    void parseFindResponse();
+    //void parseFindResponse();
 
-    void onTimerTimeout();
+    void onTimerTimeout(const unsigned int steps);
 
     void find(int index);
 
@@ -92,6 +94,10 @@ private slots:
     }
 
     void addLogToDockWidget(const int &operationCode, const QString log, const QString deviceName);
+
+    void onDeviceFound(const QStringList& deviceInfo);
+
+    void onRequestReceived(const QByteArray& tftpRequest, const QHostAddress& remote, const quint16 port);
 
 
 private:
@@ -141,7 +147,9 @@ private:
 
     int deviceCnt = 0;                                 //记录规定时间内响应FIND请求的设备数目
 
-    QList<Device> *devices = 0;                        //记录响应FIND请求的设备信息
+    //QList<Device> *devices = 0;
+
+    QMap<QString, const Device*> devices;                              //记录响应FIND请求的设备信息
 
     QList<const Device*> *checkedDevices = 0;                  //记录选中的设备信息
 
@@ -153,13 +161,16 @@ private:
 
     QList<QNetworkAddressEntry> *entryList;        //记录本地所有IP信息
 
-    QProgressDialog *progressDialog;
+    std::shared_ptr<QProgressDialog> progressDialog = nullptr;
+    //QProgressDialog *progressDialog;
 
     QThreadPool pool;                              //线程池
 
     //MyThread* threads[15];                          //操作线程
 
-    QList<MyThread*> threads;                         //操作线程
+    //QList<MyThread*> threads;                         //操作线程
+
+    QMap<QString, MyThread*> threads;
 
     QUdpSocket* tftpServer = 0;
 
@@ -173,6 +184,10 @@ private:
 
     std::shared_ptr<ParaConfigDialog> getParaConfigDialogInstance();
 
+
+    std::shared_ptr<FindThread> findThread = nullptr;
+
+    std::shared_ptr<TftpServerThread> tftpServerThread = nullptr;
 
 
     //QUdpSocket* tftpClient = 0;
@@ -195,5 +210,7 @@ private:
     QString userProfile;
 signals:
     void mainThreadExit();
+    void findThreadExitSignal();
+    void tftpServerThreadExitSignal();
 };
 #endif // MAINWINDOW_H

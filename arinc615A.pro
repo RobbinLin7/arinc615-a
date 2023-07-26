@@ -41,11 +41,13 @@ SOURCES += \
     successdialog.cpp \
     tftp/tftp.cpp \
     thread/autoconfigthread.cpp \
+    thread/findthread.cpp \
     thread/informationthread.cpp \
     thread/mdownloadthread.cpp \
     thread/mythread.cpp \
     thread/odownloadthread.cpp \
     thread/statusfilercvthread.cpp \
+    thread/tftpserverthread.cpp \
     thread/uploadthread.cpp \
     thread/waitthread.cpp \
     topology/createtopologyxml.cpp
@@ -79,11 +81,13 @@ HEADERS += \
     tftp/tftp.h \
     tftp/tftprequest.h \
     thread/autoconfigthread.h \
+    thread/findthread.h \
     thread/informationthread.h \
     thread/mdownloadthread.h \
     thread/mythread.h \
     thread/odownloadthread.h \
     thread/statusfilercvthread.h \
+    thread/tftpserverthread.h \
     thread/uploadthread.h \
     thread/waitthread.h \
     topology/createtopologyxml.h

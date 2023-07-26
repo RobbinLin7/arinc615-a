@@ -3,13 +3,14 @@
 #include "ui_fileinfowidget.h"
 #include<QPushButton>
 
-ODownloadWidget::ODownloadWidget(QThreadPool *pool, QList<MyThread*>& threads, unsigned int& threadsCnt, QVector<DeviceInfoWidget *> *deviceList, QWidget *parent):
+ODownloadWidget::ODownloadWidget(QThreadPool *pool, QMap<QString, MyThread*>& threads, unsigned int& threadsCnt, QVector<DeviceInfoWidget *> *deviceList, QWidget *parent):
     QWidget(parent),
     ui(new Ui::ODownloadWidget),
     threads(threads),
     threadsCnt(threadsCnt)
 {
-    threads.erase(threads.begin(), threads.end());
+    //threads.erase(threads.begin(), threads.end());
+    threads.clear();
     for(int i = 0; i < deviceList->size(); i++){
         deviceList->at(i)->setProgress(0);
     }
@@ -26,7 +27,8 @@ ODownloadWidget::ODownloadWidget(QThreadPool *pool, QList<MyThread*>& threads, u
             device = deviceList->at(i)->getDevice();
             qRegisterMetaType<QList<QPair<QString, QString>>*>("QList<QPair<QString, QString>>*");
             MyThread* thread = new ODownloadThread(new TftpRequest(), device, QStringList());
-            threads.append(thread);
+            threads[deviceList->at(i)->getDeviceIP()] = thread;
+            //threads.append(thread);
             //threads[threadsCnt] = new ODownloadThread(new TftpRequest(), device, QStringList(), this);
             connect(this, &ODownloadWidget::filesChecked, (ODownloadThread*)thread, &ODownloadThread::receiveCheckedFiles);
             connect((ODownloadThread*)thread, &ODownloadThread::sendFileList, this, &ODownloadWidget::receiveFileList);

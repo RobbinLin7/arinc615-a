@@ -25,7 +25,7 @@ class UploadWidget : public QWidget
 
 public:
     //explicit UploadWidget(QStringList files, QWidget *parent = nullptr);
-    explicit UploadWidget(QThreadPool* pool, QList<MyThread*>& threads, unsigned int& threadsCnt, QVector<DeviceInfoWidget *> *deviceList, QStringList files, QWidget *parent = nullptr);
+    explicit UploadWidget(QThreadPool* pool, QMap<QString, MyThread*>& threads, unsigned int& threadsCnt, QVector<DeviceInfoWidget *> *deviceList, QStringList files, QWidget *parent = nullptr);
     ~UploadWidget();
     void addFiles(QStringList);
 
@@ -40,7 +40,7 @@ private:
     //QErrorMessage *dialog;
     QThreadPool* pool;
     //MyThread** threads;
-    QList<MyThread*>& threads;
+    QMap<QString, MyThread*>& threads;
     bool beginUpload();
     QVector<DeviceInfoWidget *> *deviceList;
     unsigned int finishedThreadCnt = 0;

@@ -25,6 +25,7 @@ namespace GlobalDefine{
 #define OPERATOR_DOWNLOAD_OPERATION         "OPERATOR-DOWNLOAD"
 #define AUTO_CONFIG_OPERATION               "AUTO-CONFIG"
 #define PARAMETER_CONFIG_OPERATION          "PARAMETER-CONFIG"
+#define STATUSFILE_RECEIVE_OPERATION        "STATUSFILE_RECEIVE_OPERATION"
 
 #define FIND_OP_CODE                        1
 #define INFO_OP_CODE                        2
@@ -33,6 +34,7 @@ namespace GlobalDefine{
 #define ODOWN_OP_CODE                       5
 #define AUTO_CONFIG_OP_CODE                 6
 #define PARAMETER_CONFIG_OP_CODE            7
+#define STATUSFILE_RECEIVE_OP_CODE          8
 
 #define TFTP_LISTEN_PORT                    69
 #define FIND_LISTEN_PORT                    1001
