@@ -85,16 +85,16 @@ void DeviceInfoWidget::initDeviceInfoWidget(){
 
 }
 
-QString DeviceInfoWidget::getDeviceIP()
+QString DeviceInfoWidget::getDeviceIP() const
 {
     return ui->deviceIPLineEdit->text();
 }
 
-bool DeviceInfoWidget::checkedOrNot(){
+bool DeviceInfoWidget::checkedOrNot()const{
     return ui->deviceRadioBtn->isChecked();
 }
 
-const Device* DeviceInfoWidget::getDevice(){
+const Device* DeviceInfoWidget::getDevice()const{
     return device;
 }
 

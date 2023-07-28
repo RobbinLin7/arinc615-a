@@ -26,11 +26,11 @@ public:
 
     void setDeviceInfo(const QString &deviceName, const QString &deviceIP);
 
-    QString getDeviceIP();
+    QString getDeviceIP()const;
 
-    const Device* getDevice();
+    const Device* getDevice()const;
 
-    bool checkedOrNot();
+    bool checkedOrNot() const;
 signals:
     void radioBtnChecked(bool, const Device* device);
 

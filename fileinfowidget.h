@@ -18,9 +18,9 @@ public:
     FileInfoWidget(QString fileName, QString fileDes, QWidget *parent = nullptr);
     ~FileInfoWidget();
     void setSelectRadio(bool);
-    bool getChecked();
-    QString getFileName();
-    QString getFileAbsolutePath();
+    bool getChecked()const;
+    QString getFileName()const;
+    QString getFileAbsolutePath()const;
     Ui::FileInfoWidget *ui;
 private:
     QFile* file = nullptr;

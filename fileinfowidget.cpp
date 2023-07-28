@@ -54,16 +54,16 @@ void FileInfoWidget::setSelectRadio(bool checked){
     }
 }
 
-bool FileInfoWidget::getChecked(){
+bool FileInfoWidget::getChecked()const{
     return ui->radioButton->isChecked();
 }
 
-QString FileInfoWidget::getFileName()
+QString FileInfoWidget::getFileName()const
 {
     return this->ui->lineEdit->text();
 }
 
-QString FileInfoWidget::getFileAbsolutePath(){
+QString FileInfoWidget::getFileAbsolutePath()const{
     return this->absolutePath;
 }
 

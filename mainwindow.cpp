@@ -72,6 +72,8 @@ MainWindow::~MainWindow()
     emit(mainThreadExit());
     emit(findThreadExitSignal());
     emit(tftpServerThreadExitSignal());
+    findThread->wait();
+    tftpServerThread->wait();
     saveLog();
     savexml();
     waitForAllWorkingThreadsDone();
