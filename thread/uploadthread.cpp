@@ -1,43 +1,31 @@
-#include "uploadthread.h"
+﻿#include "uploadthread.h"
 
 void UploadThread::run()
 {
+    qDebug() << "run thread id" << QThread::currentThreadId();
     this->tftpClient = new QUdpSocket();
     this->tftpServer = new QUdpSocket();
     this->tftpClient->connectToHost(device->getHostAddress(), 69);
     qDebug() << "上传线程的id是" << QThread::currentThreadId();
-    QByteArray LUI_RRQ;
     QByteArray request;
     quint16 port;
     QString fileName;
     QFile LUR(QString("%1/%2.LUR").arg(dir.dirName(), device->getName()));
     QFile LUH(QString("%1/%2.LUH").arg(dir.dirName(), device->getName()));
-    //QString statusMessage;
-    QByteArray LUR_WRQ;
-    QByteArray ack;
     bool flag = false;
     QString errorMessage;
     while(status != END){
-        if(status != WAIT_LUS_WRQ){
-            waitTimes = 0;
-        }
+        waitTimes = 0;
         switch (status) {
-        qDebug() << status << "now ";
         case SEND_LUI_RRQ:
             if(!Tftp::receiveFile(tftpClient, QString("%1/%2.LUI").arg(dir.dirName(), device->getName()), &errorMessage, &mainThreadExitedOrNot, Tftp::RRQ)){
                 status = ERROR;
                 break;
             }
-            status = WAIT_LUS_WRQ;
-            qDebug() << "LUI发送完成";
-            emit(uploadStatusMessage(QString(tr("LUI发送完成"))));
-            break;
-        case WAIT_LUS_WRQ:
-            QThread::msleep(wait_time_ms);
-            waitTimes++;
-            if(waitTimes == max_retrans_times){
+            emit(uploadStatusMessage(QString("LUI发送完成")));
+            if(waitStatusFileRcved(errorMessage, max_retrans_times * wait_time_ms) == false){
                 status = ERROR;
-                errorMessage = QString(tr("等待LUS状态文件超时"));
+                break;
             }
             break;
         case SEND_LUR_WRQ:
@@ -51,7 +39,6 @@ void UploadThread::run()
                 status = ERROR;
                 break;
             }
-            qDebug() << "LUR发送完成";
             emit(uploadStatusMessage("LUR发送完成"));
             status = WAIT_LUH_RRQ;
             break;
@@ -64,10 +51,6 @@ void UploadThread::run()
             }
             port = tftpRequest->getPort();
             fileName = request.mid(2).split('\0').at(0);
-            if(fileName.endsWith(".LUS")){
-                status = WAIT_LUS_WRQ;
-                break;
-            }
             tftpRequest->lockMutex();
             tftpServer->disconnectFromHost();
             tftpServer->connectToHost(device->getHostAddress(), port);
@@ -88,7 +71,6 @@ void UploadThread::run()
                 errorMessage = QString("未知文件请求错误");
                 break;
             }
-            qDebug() << "LUH发送完成";
             emit(uploadStatusMessage("LUH发送完成"));
             status = WAIT_FILE_RRQ;
             break;
@@ -101,14 +83,6 @@ void UploadThread::run()
             }
             port = tftpRequest->getPort();
             fileName = request.mid(2).split('\0').at(0);
-            if(fileName.endsWith(".LUS")){
-                status = WAIT_LUS_WRQ;
-                break;
-            }
-            else if(fileName.endsWith(".LUH")){
-                status = WAIT_LUH_RRQ;
-                break;
-            }
             tftpRequest->lockMutex();
             tftpServer->disconnectFromHost();
             tftpServer->connectToHost(device->getHostAddress(), port);
@@ -126,15 +100,12 @@ void UploadThread::run()
                 }
             }
             if(flag) break;
-            //if(!files_sent[fileName]) fileSentCnt++;
             emit(uploadRate(fileSentCnt * 100 / fileList.size(), true));
             emit(uploadStatusMessage(QString("设备%1: 文件%2上传完成.(%3/%4)")
                                         .arg(device->getName())
                                         .arg(fileName)
                                         .arg(fileSentCnt)
                                         .arg(fileList.size())));
-            //files_sent[fileName] = true;
-            //status = WAIT_LUS_WRQ;
             QThread::msleep(200);
             break;
         case ERROR:
@@ -304,9 +275,10 @@ File_LUS* UploadThread::parseLUS(QByteArray data)
     qDebug() << LUS->stat_des;
     return LUS;
 }
-
 void UploadThread::rcvStatusCodeAndMessageSlot(quint16 statusCode, QString statusMessage, bool error, QString errorMessage)
 {
+    qDebug() << "rcvStatusCodeAndMessageSlot thread id" << QThread::currentThreadId();
+    conditionMutex.lock();
     this->statusMessage = statusMessage;
     this->statusCode = statusCode;
     emit(uploadStatusMessage(statusMessage));
@@ -315,7 +287,6 @@ void UploadThread::rcvStatusCodeAndMessageSlot(quint16 statusCode, QString statu
         this->errorMessage = errorMessage;
     }
     else{
-        qDebug() << "statusCode = " << this->statusCode;
         switch (this->statusCode) {
         case 0x0001:
             status = SEND_LUR_WRQ;
@@ -343,11 +314,7 @@ void UploadThread::rcvStatusCodeAndMessageSlot(quint16 statusCode, QString statu
             break;
         }
     }
+    statusFileRcved = true;
+    statusFileRcvedConditon.wakeOne();
+    conditionMutex.unlock();
 }
-
-
-
-
-
-
-

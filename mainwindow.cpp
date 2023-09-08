@@ -52,10 +52,8 @@ MainWindow::MainWindow(QWidget *parent)
     connect(ui->autoConfigBtn, SIGNAL(clicked()), this, SLOT(execAutoConfigOperation()));
 
     connect(ui->actionToolVersion, &QAction::triggered, this, [=](){
-        QMessageBox::about(this,"About ARINC615ATool","ARINC615ATool V1.0.19(2023-07-13) \n新增特性\n"
-                                                      "1.另启线程接收状态文件\n"
-                                                      "2.修改了一些闪退错误\n"
-                                                      "3.每次发现操作都检查是否需要更新当前的IP地址\n"
+        QMessageBox::about(this,"About ARINC615ATool","ARINC615ATool V1.0.20-beta (2023-09-08) \n新增特性\n"
+                                                      "1.添加线程同步机制--条件变量\n"
                                                        );
     });
 
@@ -441,12 +439,9 @@ void MainWindow::clearDeviceList()
 //==================================================================
 void MainWindow::addLogToDockWidget(const int &operationCode, const QString log, const QString deviceName)
 {
-    qDebug() << "deviceName = " << deviceName;
     QString currentTime;
     currentTime= QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss");
-
     QString info;
-
     switch(operationCode)
     {
     case FIND_OP_CODE:
@@ -787,6 +782,7 @@ void MainWindow::tftpServerTftpReadReady()
                     tftpRequest->setRequestAndPort(datagram, port);
                     MyThread* statusFileRcvThread = new StatusFileRcvThread(fileType, tftpRequest, threads.at(i)->getDevice(), this);
                     UploadThread* uploadThread = dynamic_cast<UploadThread*>(threads.at(i));
+                    MDownloadThread* mDownloadThread = dynamic_cast<MDownloadThread*>(threads.at(i));
                     ODownloadThread* oDownloadThread = dynamic_cast<ODownloadThread*>(threads.at(i));
                     AutoConfigThread* autoConfigThread = dynamic_cast<AutoConfigThread*>(threads.at(i));
                     if(uploadThread){
@@ -796,6 +792,10 @@ void MainWindow::tftpServerTftpReadReady()
                     else if(oDownloadThread){
                         connect((StatusFileRcvThread*)statusFileRcvThread, &StatusFileRcvThread::sendLNSInfSignal, oDownloadThread,
                                 &ODownloadThread::rcvStatusCodeAndMessageSlot);
+                    }
+                    else if(mDownloadThread){
+                        connect((StatusFileRcvThread*)statusFileRcvThread, &StatusFileRcvThread::sendLNSInfSignal, mDownloadThread,
+                                &MDownloadThread::rcvStatusCodeAndMessageSlot);
                     }
                     else if(autoConfigThread){
                         if(fileType == StatusFileRcvThread::LUS){
@@ -864,7 +864,6 @@ void MainWindow::unfocusOnCurrentOperation()
 {
     qDebug() << "threads.size =" << threads.size();
     qDebug() << "pool.activeThreadCount =" << pool.activeThreadCount();
-
     qDebug() << "pool.activeThreadCount =" << pool.activeThreadCount();
     ui->deviceListWidget->setEnabled(true);
     EnableOrdisableExceptFind(true);

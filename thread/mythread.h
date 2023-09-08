@@ -1,4 +1,4 @@
-#ifndef MYTHREAD_H
+﻿#ifndef MYTHREAD_H
 #define MYTHREAD_H
 
 #include <QObject>
@@ -9,6 +9,7 @@
 #include <QFile>
 #include <QDir>
 #include <QDataStream>
+#include <QWaitCondition>
 #include "device.h"
 #include "tftp/tftp.h"
 #include "tftp/tftprequest.h"
@@ -21,32 +22,11 @@ class MyThread : public QObject, public QRunnable
 {
     Q_OBJECT
 public:
-    MyThread(const Device* device, TftpRequest* tftpRequest, QObject* parent = nullptr):QObject(nullptr),
-        device(device),tftpRequest(tftpRequest){
-        //创建一个虚拟连接，只接受目的设备端发来的信息
-        QDir tmpDir(QDir::currentPath() + "/" + device->getName() + "_" + device->getHostAddress());
-        if(!tmpDir.exists()){
-            qDebug() << QDir::currentPath();
-            if(!tmpDir.mkpath(QDir::currentPath() + "/" + device->getName() + "_" + device->getHostAddress())) qDebug() << "文件夹创建失败";
-            else qDebug() << "文件创建成功";
-        }
-        dir = tmpDir;
-    }
-    virtual ~MyThread(){
-        if(tftpServer) this->tftpServer->deleteLater();
-        if(tftpClient) this->tftpClient->deleteLater();
-        if(tftpRequest) delete tftpRequest;
-        qDebug() << "MyThread的析构函数\n";
-    }
-    QHostAddress getHostAddress(){
-        return QHostAddress(this->device->getHostAddress());
-    }
-    TftpRequest* getTftpRequest(){
-        return tftpRequest;
-    }
-    const Device* getDevice(){
-        return device;
-    }
+    MyThread(const Device* device, TftpRequest* tftpRequest, QObject* parent = nullptr);
+    virtual ~MyThread();
+    const QHostAddress getHostAddress() const;
+    TftpRequest* getTftpRequest() const;
+    const Device *getDevice() const;
 protected:
     const Device* device;
     QUdpSocket* tftpClient;
@@ -57,20 +37,19 @@ protected:
     quint16 statusCode;
     QDir dir;
     bool mainThreadExitedOrNot = false;
-
-
+    bool statusFileRcved = false;
+    QMutex conditionMutex;
+    QWaitCondition statusFileRcvedConditon;
+    void waitStatusFileRcved();
+    bool waitStatusFileRcved(QString& errorMessage, unsigned long mseconds = ULONG_MAX);
 private:
     QMutex mutex;
-
 signals:
     void threadFinish(bool status, QString info);
     void mainThreadExitedSignal();
 
 public slots:
-    void mainThreadExited(){
-        QMutexLocker locker(&mutex);
-        mainThreadExitedOrNot = true;
-    }
+    void mainThreadExited();
 };
 
 #endif // MYTHREAD_H

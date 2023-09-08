@@ -1,4 +1,4 @@
-#ifndef UPLOADTHREAD_H
+﻿#ifndef UPLOADTHREAD_H
 #define UPLOADTHREAD_H
 #include <QThread>
 #include <QRunnable>
@@ -21,7 +21,7 @@ public:
     void makeLUR();
     void makeLUH();
     static File_LUS* parseLUS(QByteArray);
-    enum status_set{SEND_LUI_RRQ, WAIT_LUS_WRQ, SEND_LUR_WRQ, WAIT_LUH_RRQ, WAIT_FILE_RRQ, END, ERROR} status;
+    enum status_set{SEND_LUI_RRQ, SEND_LUR_WRQ, WAIT_LUH_RRQ, WAIT_FILE_RRQ, END, ERROR} status;
 signals:
     void uploadResult(bool);
     void uploadStatusMessage(QString);

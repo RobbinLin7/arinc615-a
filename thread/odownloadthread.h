@@ -1,4 +1,4 @@
-#ifndef ODOWNLOADTHREAD_H
+﻿#ifndef ODOWNLOADTHREAD_H
 #define ODOWNLOADTHREAD_H
 #include <QObject>
 #include "mythread.h"
@@ -24,7 +24,7 @@ public:
         delete fileList;
     }
 private:
-    enum status_set{SEND_LNO_RRQ, WAIT_LNS_WRQ, WAIT_LNL_WRQ, SEND_LNA_WRQ, WAIT_FILE, END, ERROR} status;
+    enum status_set{SEND_LNO_RRQ, WAIT_LNL_WRQ, SEND_LNA_WRQ, WAIT_FILE, END, ERROR} status;
     QList<QPair<QString, QString>> *fileList;
     bool fileListReadable = false;
     QStringList checkedFileList;
@@ -39,11 +39,8 @@ public slots:
     void rcvStatusCodeAndMessageSlot(quint16 statusCode, unsigned short totalFileNum, QString statusMessage, bool error, QString errorMessage);
 signals:
     void sendFileList(QList<QPair<QString, QString>>*);
-
     void oDownloadStatusMessage(QString);
-
     void oDownloadRate(int, bool);
-
 };
 
 #endif // ODOWNLOADTHREAD_H
