@@ -594,7 +594,8 @@ void MainWindow::getAllEntry(){
         foreach(QNetworkAddressEntry entry, entryList){
             if(entry.ip().protocol() == QAbstractSocket::IPv4Protocol
                     //&& !entry.ip().toString().startsWith("127.0.0.1")
-                    && !entry.ip().toString().startsWith("169.254")){
+                    //&& !entry.ip().toString().startsWith("169.254")){
+            ){
                 this->entryList->append(entry);
             }
         }
@@ -811,6 +812,7 @@ void MainWindow::tftpServerTftpReadReady()
                     statusFileRcvThread->setAutoDelete(true);
                 }
                 else{
+                    qDebug() << "fileName:" << fileName;
                     tftpRequest = threads.at(i)->getTftpRequest();
                     tftpRequest->setRequestAndPort(datagram, port);    
                 }
