@@ -21,7 +21,10 @@ MainWindow::MainWindow(QWidget *parent)
     userProfile = QProcessEnvironment::systemEnvironment().value("userprofile");
     qDebug() << entryList->size() << "entryList size";
     tftpServer = new QUdpSocket(this);
-    tftpServer->bind(QHostAddress::AnyIPv4, 8888, QAbstractSocket::ShareAddress);
+    if(tftpServer->bind(QHostAddress::AnyIPv4, 8888, QAbstractSocket::ShareAddress) == false){
+        QMessageBox::warning(this, "Warning", "端口8888被占用");
+        abort();
+    }
     connect(tftpServer, &QUdpSocket::readyRead, this, &MainWindow::tftpServerTftpReadReady);
 
     initMainWindow();
