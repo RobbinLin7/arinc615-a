@@ -55,8 +55,8 @@ MainWindow::MainWindow(QWidget *parent)
     connect(ui->autoConfigBtn, SIGNAL(clicked()), this, SLOT(execAutoConfigOperation()));
 
     connect(ui->actionToolVersion, &QAction::triggered, this, [=](){
-        QMessageBox::about(this,"About ARINC615ATool","ARINC615ATool V1.0.20-beta (2023-09-08) \n新增特性\n"
-                                                      "1.添加线程同步机制--条件变量\n"
+        QMessageBox::about(this,"About ARINC615ATool","ARINC615ATool V1.0.21(2023-11-07) \n新增特性\n"
+                                                      "1.日志打印完整上传文件名\n"
                                                        );
     });
 

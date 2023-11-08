@@ -86,6 +86,7 @@ void UploadThread::run()
             tftpRequest->lockMutex();
             tftpServer->disconnectFromHost();
             tftpServer->connectToHost(device->getHostAddress(), port);
+            int ii;
             for(int i = 0; i < fileList.size(); i++){
                 if(fileList.at(i).contains(fileName)){
                     if(!Tftp::sendFile(tftpServer, fileList.at(i), &errorMessage, &mainThreadExitedOrNot, Tftp::RRQ)){
@@ -96,6 +97,7 @@ void UploadThread::run()
                         fileSentCnt++;
                         files_sent[fileName] = true;
                     }
+                    ii = i;
                     break;
                 }
             }
@@ -103,7 +105,7 @@ void UploadThread::run()
             emit(uploadRate(fileSentCnt * 100 / fileList.size(), true));
             emit(uploadStatusMessage(QString("设备%1: 文件%2上传完成.(%3/%4)")
                                         .arg(device->getName())
-                                        .arg(fileName)
+                                        .arg(fileList.at(ii))
                                         .arg(fileSentCnt)
                                         .arg(fileList.size())));
             QThread::msleep(200);
