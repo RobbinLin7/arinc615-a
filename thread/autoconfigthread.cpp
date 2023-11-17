@@ -6,7 +6,7 @@ void AutoConfigThread::run(){
     this->tftpClient = new QUdpSocket();
     this->tftpServer = new QUdpSocket();
 
-    this->tftpClient->connectToHost(device->getHostAddress(), 69);
+    //this->tftpClient->connectToHost(device->getHostAddress(), 69);
     connect((UploadThread*)uploadThread, &UploadThread::uploadResult, this, [=](bool result){
         if(result) uploadComplete = 1;
         else uploadComplete = -1;

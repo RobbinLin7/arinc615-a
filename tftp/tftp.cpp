@@ -161,6 +161,7 @@ bool Tftp::sendFile(QHostAddress targetAddress, QUdpSocket *uSock, QString path,
         return false;
     }
     int dataLen = -1;
+    quint16 port;
     quint16 block = 1;
     char data[TFTP_NOT_LAST_DATA_LEN];
     memset(data, 0, sizeof(data));
@@ -169,7 +170,8 @@ bool Tftp::sendFile(QHostAddress targetAddress, QUdpSocket *uSock, QString path,
         QByteArray wrq = makeTftpWriteRequest(fileName);
         bool readyRead = false;
         do{
-            uSock->write(wrq.data(), wrq.size());
+            uSock->writeDatagram(wrq, targetAddress, 69);
+            //uSock->write(wrq.data(), wrq.size());
             retrans_times++;
             readyRead = uSock->waitForReadyRead(wait_time_ms);
         }while(!(*mainThreadExitedOrNot) && !readyRead && retrans_times < max_retrans_times);
@@ -183,7 +185,8 @@ bool Tftp::sendFile(QHostAddress targetAddress, QUdpSocket *uSock, QString path,
         }
         QByteArray ack;
         ack.resize(uSock->pendingDatagramSize());
-        uSock->read(ack.data(), ack.size());
+        uSock->readDatagram(ack.data(), ack.size(), &targetAddress, &port);
+        //uSock->read(ack.data(), ack.size());
         if(!strcmp(ack.left(4).data(), "\x00\x04\x00\x00")) break;
         else{
             *errorMessage = QString("设备端拒绝了你的%1写请求").arg(fileName);
@@ -198,20 +201,23 @@ bool Tftp::sendFile(QHostAddress targetAddress, QUdpSocket *uSock, QString path,
         bool readyRead = false;
         quint16 ackNo = 0;
         while(!(*mainThreadExitedOrNot) && (!readyRead || block != ackNo) && retrans_times <= max_retrans_times){
-            uSock->write(tftpData.data(), tftpData.size());
+            uSock->writeDatagram(tftpData, targetAddress, port);
+            //uSock->write(tftpData.data(), tftpData.size());
             readyRead = uSock->waitForReadyRead(wait_time_ms);//设置2秒的超时时间,最多重传20次
             if(readyRead){
                 //qDebug() << uSock->pendingDatagramSize() << uSock->bytesAvailable();
                 if(uSock->pendingDatagramSize() < 4){
 
                     ack.resize(uSock->bytesAvailable());
-                    uSock->read(ack.data(), ack.size());
+                    uSock->readDatagram(ack.data(), ack.size(), &targetAddress, &port);
+                    //uSock->read(ack.data(), ack.size());
                     //qDebug() << ack << uSock->pendingDatagramSize() << uSock->bytesAvailable();
                     *errorMessage = QString("%1:设备端端口不可达").arg(fileName);
                     return false;
                 }
                 ack.resize(uSock->pendingDatagramSize());
-                uSock->read(ack.data(), ack.size());
+                uSock->readDatagram(ack.data(), ack.size(), &targetAddress, &port);
+                //uSock->read(ack.data(), ack.size());
                 quint16 high = (unsigned char)ack.at(2);
                 quint16 low = (unsigned char)ack.at(3);
                 ackNo = (high << 8) + low;
@@ -470,6 +476,7 @@ bool Tftp::receiveFile(QUdpSocket *uSock, QString path, QString *errorMessage, b
         unsigned int retrans_times = 0;
         do{
             readReady = uSock->waitForReadyRead(wait_time_ms);
+
             if(readReady){
                 if(uSock->pendingDatagramSize() < 4){
                     *errorMessage = QString("文件%1:DATA报文格式有误").arg(fileName);
@@ -509,6 +516,7 @@ bool Tftp::receiveFile(QUdpSocket *uSock, QString path, QString *errorMessage, b
 
 bool Tftp::receiveFile(QHostAddress address, QUdpSocket *uSock, QString path, QString *errorMessage, bool *mainThreadExitedOrNot, TftpMode tftpMode)
 {
+    quint16 port;
     QFile file(path);
     QString fileName = path.lastIndexOf('/') != -1 ? path.mid(path.lastIndexOf('/') + 1)
                                                                   : path;
@@ -523,11 +531,10 @@ bool Tftp::receiveFile(QHostAddress address, QUdpSocket *uSock, QString path, QS
         QByteArray rrq = makeTftpReadRequest(fileName);
         bool readyRead = false;
         do{
-            //uSock->writeDatagram(rrq, )
-            uSock->write(rrq.data(), rrq.size());
-            uSock->bind(uSock->localPort());
+            uSock->writeDatagram(rrq, address, 69);  //****************************************************
+            //uSock->write(rrq.data(), rrq.size());
+            //uSock->bind(uSock->localPort());
             //uSock->bind();
-
             retrans_times++;
             //uSock->wa
             readyRead = uSock->waitForReadyRead(wait_time_ms);
@@ -570,6 +577,7 @@ bool Tftp::receiveFile(QHostAddress address, QUdpSocket *uSock, QString path, QS
         unsigned int retrans_times = 0;
         do{
             readReady = uSock->waitForReadyRead(wait_time_ms);
+            //uSock->readDatagram()
 //            QByteArray datagram;
 //            QString fileName;
 //            datagram.resize(uSock->pendingDatagramSize());
@@ -586,6 +594,7 @@ bool Tftp::receiveFile(QHostAddress address, QUdpSocket *uSock, QString path, QS
                 //uSock->bytesAvailable()
                 data.resize(uSock->pendingDatagramSize());
                 //qDebug() << uSock->pendingDatagramSize() << uSock->bytesAvailable();
+                uSock->readDatagram(data.data(), data.size(), &address, &port);
                 uSock->read(data.data(), data.size());
                 quint16 high = (unsigned char)data.at(2);
                 quint16 low = (unsigned char)data.at(3);
@@ -599,7 +608,8 @@ bool Tftp::receiveFile(QHostAddress address, QUdpSocket *uSock, QString path, QS
                 }
             }
             retrans_times++;
-            uSock->write(ack.data(), ack.size());
+            uSock->writeDatagram(ack, address, port);
+            //uSock->write(ack.data(), ack.size());
         }while(!(*mainThreadExitedOrNot) && (!readReady || block != expectedBlock) && retrans_times < max_retrans_times);
         if(*mainThreadExitedOrNot){
             *errorMessage = QString("主线程已退出");

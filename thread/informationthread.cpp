@@ -7,7 +7,7 @@
 void InformationThread::run(){
     this->tftpClient = new QUdpSocket();
     this->tftpServer = new QUdpSocket();
-    this->tftpClient->connectToHost(device->getHostAddress(), 69);
+    //this->tftpClient->connectToHost(device->getHostAddress(), 69);
     QString errorMessage;
     QByteArray request;
     quint16 port;
@@ -15,7 +15,7 @@ void InformationThread::run(){
     while(status != END){
         switch (status) {
         case SEND_LCI_RRQ:
-            if(!Tftp::receiveFile(tftpClient, QString("%1/%2.LCI").arg(dir.dirName(), device->getName()), &errorMessage, &mainThreadExitedOrNot, Tftp::RRQ)){
+            if(!Tftp::receiveFile(QHostAddress(device->getHostAddress()), tftpClient, QString("%1/%2.LCI").arg(dir.dirName(), device->getName()), &errorMessage, &mainThreadExitedOrNot, Tftp::RRQ)){
                 status = ERROR;
                 break;
             }

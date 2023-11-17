@@ -5,7 +5,7 @@ void UploadThread::run()
     qDebug() << "run thread id" << QThread::currentThreadId();
     this->tftpClient = new QUdpSocket();
     this->tftpServer = new QUdpSocket();
-    this->tftpClient->connectToHost(device->getHostAddress(), 69);
+    //this->tftpClient->connectToHost(device->getHostAddress(), 69);
     qDebug() << "上传线程的id是" << QThread::currentThreadId();
     QByteArray request;
     quint16 port;
@@ -18,7 +18,7 @@ void UploadThread::run()
         waitTimes = 0;
         switch (status) {
         case SEND_LUI_RRQ:
-            if(!Tftp::receiveFile(tftpClient, QString("%1/%2.LUI").arg(dir.dirName(), device->getName()), &errorMessage, &mainThreadExitedOrNot, Tftp::RRQ)){
+            if(!Tftp::receiveFile(QHostAddress(device->getHostAddress()), tftpClient, QString("%1/%2.LUI").arg(dir.dirName(), device->getName()), &errorMessage, &mainThreadExitedOrNot, Tftp::RRQ)){
                 status = ERROR;
                 break;
             }
@@ -35,7 +35,7 @@ void UploadThread::run()
                 status = ERROR;
                 break;
             }
-            if(!Tftp::sendFile(tftpClient, QString("%1/%2.LUR").arg(dir.dirName(), device->getName()), &errorMessage, &mainThreadExitedOrNot, Tftp::WRQ)){
+            if(!Tftp::sendFile(QHostAddress(device->getHostAddress()), tftpClient, QString("%1/%2.LUR").arg(dir.dirName(), device->getName()), &errorMessage, &mainThreadExitedOrNot, Tftp::WRQ)){
                 status = ERROR;
                 break;
             }
@@ -289,6 +289,7 @@ void UploadThread::rcvStatusCodeAndMessageSlot(quint16 statusCode, QString statu
         this->errorMessage = errorMessage;
     }
     else{
+        qDebug() << "statusCode =" << statusCode;
         switch (this->statusCode) {
         case 0x0001:
             status = SEND_LUR_WRQ;

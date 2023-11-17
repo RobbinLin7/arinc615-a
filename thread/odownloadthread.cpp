@@ -5,7 +5,7 @@ void ODownloadThread::run()
 {
     this->tftpClient = new QUdpSocket();
     this->tftpServer = new QUdpSocket();
-    this->tftpClient->connectToHost(device->getHostAddress(), 69);
+    //this->tftpClient->connectToHost(device->getHostAddress(), 69);
     QByteArray request;
     quint16 port;
     QString fileName;
@@ -15,7 +15,7 @@ void ODownloadThread::run()
         waitTimes = 0;
         switch (status) {
         case SEND_LNO_RRQ:
-            if(mainThreadExitedOrNot || !Tftp::receiveFile(tftpClient, QString("%1/%2.LNO").arg(dir.dirName(), device->getName()), &errorMessage, &mainThreadExitedOrNot, Tftp::RRQ)){
+            if(mainThreadExitedOrNot || !Tftp::receiveFile(QHostAddress(device->getHostAddress()), tftpClient, QString("%1/%2.LNO").arg(dir.dirName(), device->getName()), &errorMessage, &mainThreadExitedOrNot, Tftp::RRQ)){
                 status = ERROR;
                 break;
             }
@@ -42,7 +42,7 @@ void ODownloadThread::run()
             tftpServer->disconnectFromHost();
             tftpServer->connectToHost(device->getHostAddress(), port);
             tftpRequest->lockMutex();
-            if(!Tftp::receiveFile(tftpServer, QString("%1/%2").arg(dir.dirName(), fileName), &errorMessage, &mainThreadExitedOrNot, Tftp::WRQ)){
+            if(!Tftp::receiveFile(QHostAddress(device->getHostAddress()), tftpServer, QString("%1/%2").arg(dir.dirName(), fileName), &errorMessage, &mainThreadExitedOrNot, Tftp::WRQ)){
                 status = ERROR;
                 break;
             }
@@ -93,7 +93,7 @@ void ODownloadThread::run()
             emit oDownloadStatusMessage(QString(tr("获取下载文件列表成功")));
             makeLNA();
             emit oDownloadStatusMessage(QString(tr("LNA文件构造成功")));
-            if(!Tftp::sendFile(tftpClient, QString("%1/%2.LNA").arg(dir.dirName(), device->getName()), &errorMessage, &mainThreadExitedOrNot, Tftp::WRQ)){
+            if(!Tftp::sendFile(QHostAddress(device->getHostAddress()), tftpClient, QString("%1/%2.LNA").arg(dir.dirName(), device->getName()), &errorMessage, &mainThreadExitedOrNot, Tftp::WRQ)){
                 status = ERROR;
                 break;
             }
@@ -119,7 +119,7 @@ void ODownloadThread::run()
             tftpServer->disconnectFromHost();
             tftpServer->connectToHost(device->getHostAddress(), port);
             tftpRequest->lockMutex();
-            if(!Tftp::receiveFile(tftpServer, QString("%1/%2").arg(dir.dirName(), fileName), &errorMessage, &mainThreadExitedOrNot,Tftp::WRQ)){
+            if(!Tftp::receiveFile(QHostAddress(device->getHostAddress()), tftpServer, QString("%1/%2").arg(dir.dirName(), fileName), &errorMessage, &mainThreadExitedOrNot,Tftp::WRQ)){
                 status = ERROR;
                 break;
             }
