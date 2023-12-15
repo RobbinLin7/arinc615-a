@@ -23,7 +23,9 @@ MainWindow::MainWindow(QWidget *parent)
     tftpServer = new QUdpSocket(this);
     if(tftpServer->bind(QHostAddress::AnyIPv4, 8888, QAbstractSocket::ShareAddress) == false){
         QMessageBox::warning(this, "Warning", "端口8888被占用");
-        abort();
+        this->portOccupied = true;
+        //abort();
+        //QCoreApplication::exit(1);
     }
     connect(tftpServer, &QUdpSocket::readyRead, this, &MainWindow::tftpServerTftpReadReady);
 
@@ -55,8 +57,8 @@ MainWindow::MainWindow(QWidget *parent)
     connect(ui->autoConfigBtn, SIGNAL(clicked()), this, SLOT(execAutoConfigOperation()));
 
     connect(ui->actionToolVersion, &QAction::triggered, this, [=](){
-        QMessageBox::about(this,"About ARINC615ATool","ARINC615ATool V1.0.21(2023-11-07) \n新增特性\n"
-                                                      "1.日志打印完整上传文件名\n"
+        QMessageBox::about(this,"About ARINC615ATool","ARINC615ATool V1.0.22(2023-12-15) \n新增特性\n"
+                                                      "1.修改端口占用在windows7导致程序崩溃异常结束的bug\n"
                                                        );
     });
 
@@ -473,6 +475,11 @@ void MainWindow::addLogToDockWidget(const int &operationCode, const QString log,
     }
     if(deviceName != "default") ui->logTextBrowser->append(currentTime + " " + deviceName + "-" +  info);
     else ui->logTextBrowser->append(currentTime + " " + info);
+}
+
+bool MainWindow::getPortOccupied() const
+{
+    return portOccupied;
 }
 
 

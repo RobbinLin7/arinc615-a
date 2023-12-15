@@ -50,6 +50,8 @@ public:
     void getAllEntry();
     void EnableOrdisableExceptFind(bool flag);
     void checkIfAnyDeviceSelect();
+    bool getPortOccupied() const;
+
 private slots:
 
     void execFindOperation();
@@ -96,6 +98,7 @@ private slots:
 
 private:
     Ui::MainWindow *ui;
+    bool portOccupied = false;
     void enableAllExceptCurrentOperation(bool flag);
     int createDeviceWidget(const Device&);
     void clearDeviceList();

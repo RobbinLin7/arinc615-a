@@ -43,6 +43,9 @@ int main(int argc, char *argv[])
     //LOAD_DIR
     loadxml();
     MainWindow w;
+    if(w.getPortOccupied() == true){
+        return 0;
+    }
     w.show();
     int res = a.exec();
     CloseHandle(m_hMutex);
