@@ -659,21 +659,24 @@ void MainWindow::find(int index){
 }
 
 QByteArray MainWindow::makeFindRequest(){
-    find_req req;   //find请求
-    memset(&req, 0, sizeof(req));
-    req.opcode = 256;
-    req.ASCII_String = '\0';
-    req.Packet_Terminator = 0x10;
-    req.tftpRetryNum = max_retrans_times;
-    req.tftpTimeout = wait_time_ms;
-    req.lusPeriod = state_file_send_interval;
-    QByteArray datagram;
-    appendBigEndian(&req.opcode, sizeof(req.opcode), datagram);
-    datagram.append(req.ASCII_String).append(req.Packet_Terminator);
-    appendBigEndian(&req.tftpRetryNum, sizeof(req.tftpRetryNum), datagram);
-    appendBigEndian(&req.tftpTimeout, sizeof(req.tftpTimeout), datagram);
-    appendBigEndian(&req.lusPeriod, sizeof(req.lusPeriod), datagram);
-    return datagram;
+//    find_req req;   //find请求
+//    memset(&req, 0, sizeof(req));
+//    req.opcode = 256;
+//    req.ASCII_String = '\0';
+//    req.Packet_Terminator = 0x10;
+//    req.tftpRetryNum = max_retrans_times;
+//    req.tftpTimeout = wait_time_ms;
+//    req.lusPeriod = state_file_send_interval;
+//    QByteArray datagram;
+//    appendBigEndian(&req.opcode, sizeof(req.opcode), datagram);
+//    datagram.append(req.ASCII_String).append(req.Packet_Terminator);
+//    appendBigEndian(&req.tftpRetryNum, sizeof(req.tftpRetryNum), datagram);
+//    appendBigEndian(&req.tftpTimeout, sizeof(req.tftpTimeout), datagram);
+//    appendBigEndian(&req.lusPeriod, sizeof(req.lusPeriod), datagram);
+//    return datagram;
+    QByteArray findRequest;
+    findRequest.append("\x00\x01\x00\x10", 4);
+    return  findRequest;
 }
 
 void MainWindow::waitForAllWorkingThreadsDone()
