@@ -493,7 +493,7 @@ void MainWindow::parseFindResponse(){
         uSock->readDatagram(datagram.data(), datagram.size(), &remoteAddress);
         datagram = datagram.trimmed();
         //去掉FIND相应报文的头部，获取内容
-        if(datagram.size() < 2 || strcmp(datagram.left(2).data(), "\x02\x00")){
+        if(datagram.size() < 2 || strcmp(datagram.left(2).data(), "\x00\x02")){
             return;
         }
         QString info = QString::fromStdString(datagram.mid(2).toStdString());
@@ -650,8 +650,8 @@ void MainWindow::find(int index){
     QByteArray datagram = makeFindRequest();
     //发送FIND请求报文
     uSock = new QUdpSocket(this);
-    uSock->bind(QHostAddress::AnyIPv4, 0, QUdpSocket::ShareAddress);
-    uSock->writeDatagram(datagram.data(), datagram.size(), entry->broadcast(), 1001);
+    uSock->bind(QHostAddress::AnyIPv4, 1002, QUdpSocket::ShareAddress);
+    uSock->writeDatagram(datagram.data(), datagram.size(), QHostAddress("169.254.5.122"), 1001);
     //在规定时间内接收FIND响应包
     connect(uSock, &QUdpSocket::readyRead, this, &MainWindow::parseFindResponse);
     connect(timer.get(), &QTimer::timeout, this, &MainWindow::onTimerTimeout);
