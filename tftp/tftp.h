@@ -22,8 +22,8 @@ public:
     static bool receiveFile(QHostAddress address, QUdpSocket *uSock, QString fileName, QString* errorMessage, bool* mainThreadExitedOrNot, enum TftpMode tftpMode = RRQ);
     //static bool receiveFile(QUdpSocket *uSock, QString fileName, enum TftpMode tftpMode = RRQ);
     static QByteArray makeTftpData(char data[], int len, quint16 block);
-    static QByteArray makeTftpReadRequest(QString fileName, QString mode = "octet", quint16 valueOfBlockSize = 512, quint8 valueOfTimeOut = 1);
-    static QByteArray makeTftpWriteRequest(QString fileName, QString mode = "octet", quint16 valueOfBlockSize = 512, quint8 valueOfTimeOut = 1);
+    static QByteArray makeTftpReadRequest(QString fileName, QString mode = "octet", quint16 valueOfBlockSize = 512, quint16 valueOfTimeOut = 2);
+    static QByteArray makeTftpWriteRequest(QString fileName, QString mode = "octet", quint16 valueOfBlockSize = 512, quint16 valueOfTimeOut = 2);
     static QByteArray makeTftpAck(quint16 block);
     static QByteArray makeTftpOAck(const QMap<QString,QString> &options);
     static QByteArray makeTftpError(quint16 errorCode, QString errorMessage);
