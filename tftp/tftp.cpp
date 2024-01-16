@@ -616,7 +616,7 @@ bool Tftp::receiveFile(QHostAddress address, QUdpSocket *uSock, QString path, QS
 }
 
 
-QByteArray Tftp::makeTftpReadRequest(QString fileName, QString mode){
+QByteArray Tftp::makeTftpReadRequest(QString fileName, QString mode, quint16 valueOfBlockSize, quint8 valueOfTimeOut){
     QByteArray request;
     //1.opcode
     request.append('\0');
@@ -627,10 +627,22 @@ QByteArray Tftp::makeTftpReadRequest(QString fileName, QString mode){
     //3.mode
     request.append(mode);
     request.append('\0');
+    //4.blocksize
+    request.append("blksize");
+    request.append('\0');
+    request.append(valueOfBlockSize);
+    request.append('\0');
+    //5.timeout
+    request.append("timeout");
+    request.append('\0');
+    request.append(valueOfTimeOut);
+    request.append('\0');
+
+
     return request;
 }
 
-QByteArray Tftp::makeTftpWriteRequest(QString fileName, QString mode)
+QByteArray Tftp::makeTftpWriteRequest(QString fileName, QString mode, quint16 valueOfBlockSize, quint8 valueOfTimeOut)
 {
     QByteArray request;
     //1.opcode
@@ -642,6 +654,17 @@ QByteArray Tftp::makeTftpWriteRequest(QString fileName, QString mode)
     //3.mode
     request.append(mode);
     request.append('\0');
+    //4.blocksize 范围为8-65464
+    request.append("blksize");
+    request.append('\0');
+    request.append(QString::number(valueOfBlockSize));
+    request.append('\0');
+    //5.timeout 范围为1-255
+    request.append("timeout");
+    request.append('\0');
+    request.append(QString::number(valueOfTimeOut));
+    request.append('\0');
+
     return request;
 }
 
@@ -655,6 +678,41 @@ QByteArray Tftp::makeTftpAck(quint16 block)
     ack.append(block >> 8);
     ack.append(block);
     return ack;
+}
+
+
+QByteArray Tftp::makeTftpError(quint16 errorCode, QString errorMessage)
+{
+    QByteArray error;
+    //1.opcode
+    error.append('\0');
+    error.append(5);
+    //2.errorCode
+    error.append(errorCode >> 8);
+    error.append(errorCode);
+    //3.errorMessage
+    error.append(errorMessage);
+    error.append('\0');
+
+    return error;
+}
+
+QByteArray Tftp::makeTftpOAck(const QMap<QString, QString> &options)
+{
+    QByteArray oack;
+    //1.opcode
+    oack.append('\0');
+    oack.append(6);
+    //2.every option and value
+    for(auto it = options.constBegin(); it != options.constEnd(); ++it){
+        oack.append(it.key());
+        oack.append('\0');
+        oack.append(it.value());
+        oack.append('\0');
+    }
+
+    return oack;
+
 }
 
 QByteArray Tftp::makeTftpData(char data[], int len, quint16 block){
