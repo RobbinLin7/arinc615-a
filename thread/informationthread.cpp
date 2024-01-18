@@ -6,8 +6,14 @@
 
 void InformationThread::run(){
     this->tftpClient = new QUdpSocket();
+    bool flag = this->tftpClient->bind(2058);
+    if(flag) qDebug() << "绑定成功";
+    else{
+        qDebug() << "绑定失败";
+        return;
+    }
     this->tftpServer = new QUdpSocket();
-    this->tftpClient->connectToHost(device->getHostAddress(), 69);
+    //this->tftpClient->connectToHost(device->getHostAddress(), 69);
     QString errorMessage;
     QByteArray request;
     quint16 port;
@@ -39,7 +45,7 @@ void InformationThread::run(){
                     status = ERROR;
                     break;
                 }
-                qDebug() << "LNL文件接收完毕";
+                qDebug() << "LNL receive complete";
                 emit(informationStatusMessage(QString(tr("LCL接收完成"))));
                 File_LCL *LCL_struct = parseLCL();
                 emit(informationFinished(LCL_struct, device->getName(), device->getHostAddress()));
@@ -63,12 +69,12 @@ void InformationThread::run(){
 }
 
 File_LCL* InformationThread::parseLCL(){
-    QFile LCL(QString("%1/%2.LCL").arg(dir.dirName(), device->getName()));
+    QFile LCL(QString("%1/%2_%3.LCL").arg(dir.dirName(), device->getName(), device->getPosition()));
     File_LCL *LCL_struct = (File_LCL*)malloc(sizeof(File_LCL));
     if(LCL.open(QIODevice::ReadOnly)){
         qDebug() << "文件打开成功";
         QDataStream in(&LCL);
-        in.setByteOrder(QDataStream::LittleEndian);
+        in.setByteOrder(QDataStream::BigEndian);
         in >> LCL_struct->file_len;
         qDebug() << LCL_struct->file_len << "file_len";
         in.readRawData(LCL_struct->Pro_ver, 2);
@@ -79,20 +85,20 @@ File_LCL* InformationThread::parseLCL(){
         for(int i = 0; i < LCL_struct->Hw_num; i++){
             in >> LCL_struct->Hws[i].target_code_length;
             qDebug() << LCL_struct->Hws[i].target_code_length << "target_code_length";
-            in.readRawData(LCL_struct->Hws[i].target_code, 255);
+            in.readRawData(LCL_struct->Hws[i].target_code, LCL_struct->Hws[i].target_code_length);
             qDebug() << LCL_struct->Hws[i].target_code << "target_code";
             in >> LCL_struct->Hws[i].serial_length;
-            in.readRawData(LCL_struct->Hws[i].serial_code, 255);
+            in.readRawData(LCL_struct->Hws[i].serial_code, LCL_struct->Hws[i].serial_length);
             in >> LCL_struct->Hws[i].number_part_number;
             const unsigned int partsNo = LCL_struct->Hws[i].number_part_number;
             LCL_struct->Hws[i].parts = (partInfo*)malloc(sizeof(partInfo) * partsNo);
             for(unsigned int j = 0; j < partsNo; j++){
                 in >> LCL_struct->Hws[i].parts[j].part_number_length;
-                in.readRawData(LCL_struct->Hws[i].parts[j].part_number, 255);
+                in.readRawData(LCL_struct->Hws[i].parts[j].part_number, LCL_struct->Hws[i].parts[j].part_number_length);
                 in >> LCL_struct->Hws[i].parts[j].part_design_length;
-                in.readRawData(LCL_struct->Hws[i].parts[j].part_design, 255);
+                in.readRawData(LCL_struct->Hws[i].parts[j].part_design, LCL_struct->Hws[i].parts[j].part_design_length);
                 in >> LCL_struct->Hws[i].parts[j].amend_length;
-                in.readRawData(LCL_struct->Hws[i].parts[j].amend, 255);
+                in.readRawData(LCL_struct->Hws[i].parts[j].amend, LCL_struct->Hws[i].parts[j].amend_length);
             }
         }
         LCL.close();
