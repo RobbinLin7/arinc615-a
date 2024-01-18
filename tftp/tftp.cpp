@@ -1,4 +1,4 @@
-#include "tftp.h"
+﻿#include "tftp.h"
 
 bool Tftp::sendFile(QUdpSocket *uSock, QString path, QString* errorMessage, enum TftpMode tftpMode)
 {
@@ -34,6 +34,7 @@ bool Tftp::sendFile(QUdpSocket *uSock, QString path, QString* errorMessage, enum
             return false;
         }
     }
+    //如果设备端接受了写请求
     do{
         QByteArray tftpData, ack;
         unsigned int retrans_times = 0;
@@ -41,6 +42,7 @@ bool Tftp::sendFile(QUdpSocket *uSock, QString path, QString* errorMessage, enum
         tftpData = makeTftpData(data, dataLen, block);
         bool readyRead = false;
         quint16 ackNo = 0;
+        //当readReady为True并且接收到正确编号的ACK报文后或者重传次数超出后跳出
         while((!readyRead || block != ackNo) && retrans_times <= max_retrans_times){
             uSock->write(tftpData.data(), tftpData.size());
             readyRead = uSock->waitForReadyRead(wait_time_ms);//设置3秒的超时时间
@@ -67,7 +69,7 @@ bool Tftp::sendFile(QUdpSocket *uSock, QString path, QString* errorMessage, enum
             return false;
         }
         block++;
-    }while(dataLen == TFTP_NOT_LAST_DATA_LEN);
+    }while(dataLen == TFTP_NOT_LAST_DATA_LEN);//直到组成一个512字节的data包
     file.close();
     return true;
 }
@@ -421,6 +423,8 @@ bool Tftp::receiveFile(QUdpSocket *uSock, QString path, QString *errorMessage, b
         return false;
     }
     int dataLen = TFTP_NOT_LAST_DATA_LEN;
+    quint16 expectedBlock = 0, block = -1;
+
     if(tftpMode == RRQ){
         //此处为加载端发起TFTP读请求
         unsigned int retrans_times = 0;
@@ -437,8 +441,32 @@ bool Tftp::receiveFile(QUdpSocket *uSock, QString path, QString *errorMessage, b
             return false;
         }
         if(!readyRead){
-            *errorMessage = QString("等待文件%1:DATA报文超时").arg(fileName);
+            *errorMessage = QString("等待文件%1:OACK报文超时").arg(fileName);
             return false;
+        }
+        //如果主程序没有退出并且读到了OACK报文 先读取Oack包并且返回ACK包
+        if(*mainThreadExitedOrNot && readyRead){
+            QByteArray oAck,ackReplyToOack;
+            bool readyRead = false;
+            oAck.resize(uSock->pendingDatagramSize());
+            uSock->read(oAck.data(),oAck.size());
+            //解析OACK报文中的字段
+
+            //构造回复OACK报文的ack包
+            do{
+                ackReplyToOack = makeTftpAck(expectedBlock);//块号从0开始
+                uSock->write(ackReplyToOack.data(), ackReplyToOack.size());
+                retrans_times++;
+                readyRead = uSock->waitForReadyRead(wait_time_ms);
+            }while(!(*mainThreadExitedOrNot) && !readyRead && retrans_times < max_retrans_times);
+            if(*mainThreadExitedOrNot){
+                *errorMessage = QString("主线程已退出");
+                return false;
+            }
+            if(!readyRead){
+                *errorMessage = QString("等待文件%1:DATA报文超时").arg(fileName);
+                return false;
+            }
         }
 
     }
@@ -463,7 +491,7 @@ bool Tftp::receiveFile(QUdpSocket *uSock, QString path, QString *errorMessage, b
     }
     QByteArray ack;
     QByteArray data;
-    quint16 expectedBlock = 1, block = -1;
+//    quint16 expectedBlock = 1, block = -1;
     bool readReady = false;
 
     while(dataLen == TFTP_NOT_LAST_DATA_LEN){
