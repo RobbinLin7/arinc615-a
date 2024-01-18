@@ -1,6 +1,6 @@
 #include "tftp.h"
 
-QByteArray Tftp::makeTftpReadRequest(QString fileName, QString mode, quint16 valueOfBlockSize, quint8 valueOfTimeOut){
+QByteArray Tftp::makeTftpReadRequest(QString fileName, QString mode, quint16 valueOfBlockSize, quint16 valueOfTimeOut){
     QByteArray request;
     //1.opcode
     request.append('\0');
@@ -11,20 +11,20 @@ QByteArray Tftp::makeTftpReadRequest(QString fileName, QString mode, quint16 val
     //3.mode
     request.append(mode);
     request.append('\0');
-    //4.blocksize
+    //4.blocksize 范围为8-2^14
     request.append("blksize");
     request.append('\0');
     request.append(QString::number(valueOfBlockSize));
     request.append('\0');
-    //5.timeout
+    //5.timeout 范围为1-65535
     request.append("timeout");
     request.append('\0');
-    request.append(QString::number(valueOfBlockSize));
+    request.append(QString::number(valueOfTimeOut));
     request.append('\0');
     return request;
 }
 
-QByteArray Tftp::makeTftpWriteRequest(QString fileName, QString mode, quint16 valueOfBlockSize, quint8 valueOfTimeOut)
+QByteArray Tftp::makeTftpWriteRequest(QString fileName, QString mode, quint16 valueOfBlockSize, quint16 valueOfTimeOut)
 {
     QByteArray request;
     //1.opcode
@@ -40,12 +40,14 @@ QByteArray Tftp::makeTftpWriteRequest(QString fileName, QString mode, quint16 va
     request.append('\0');
 
     //4.blocksize 范围为8-65464
+
     request.append("blksize");
     request.append('\0');
     request.append(QString::number(valueOfBlockSize).toStdString().c_str());
     request.append('\0');
 
-    //5.timeout 范围为1-255
+    //5.timeout 范围为1-65535
+
     request.append("timeout");
     request.append('\0');
     request.append(QString::number(valueOfTimeOut));
