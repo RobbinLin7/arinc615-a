@@ -13,6 +13,8 @@ MyThread::MyThread(const Device *device, TftpRequest *tftpRequest, QObject *pare
 }
 
 MyThread::~MyThread(){
+    this->tftpServer->close();
+    this->tftpClient->close();
     if(tftpServer) this->tftpServer->deleteLater();
     if(tftpClient) this->tftpClient->deleteLater();
     if(tftpRequest) delete tftpRequest;

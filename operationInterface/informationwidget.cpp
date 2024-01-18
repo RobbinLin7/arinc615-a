@@ -42,26 +42,32 @@ void InformationWidget::setTargetInfo(File_LCL lcl, QString name, QString ip)
     char Pro_ver[3];
     memcpy(Pro_ver, lcl.Pro_ver, 2);
     Pro_ver[2] = '\0';
-    ui->targetNumLabel->setText(QString("%1个, 版本%2.").arg(++hardwareNum).arg(Pro_ver));
+    ui->targetNumLabel->setText(QString("%1个, 版本%2.").arg(hardwareNum = hardwareNum + lcl.Hw_num).arg(Pro_ver));
     //ui->targetInfoTreeWidget->clear();
     //添加顶层节点
+    QTreeWidgetItem *topItem = new QTreeWidgetItem(ui->targetInfoTreeWidget);
+    topItem->setText(0, QString("%1-%2").arg(name).arg(ip));
+    topItem->setData(0, Qt::CheckStateRole, QVariant());
+    ui->targetInfoTreeWidget->addTopLevelItem(topItem);
     for(int i = 0 ; i < lcl.Hw_num; i++)
     {
-        QTreeWidgetItem *topItem = new QTreeWidgetItem(ui->targetInfoTreeWidget);
-        topItem->setText(0, QString("%1-%2").arg(name).arg(ip));
+
         //topItem->setCheckState(0, Qt::Unchecked);
-        topItem->setData(0, Qt::CheckStateRole, QVariant());
+        //topItem->setData(0, Qt::CheckStateRole, QVariant());
 
-        ui->targetInfoTreeWidget->addTopLevelItem(topItem);
+        //ui->targetInfoTreeWidget->addTopLevelItem(topItem);
 
-        QTreeWidgetItem *childItem = new QTreeWidgetItem(topItem);
+        QTreeWidgetItem* item = new QTreeWidgetItem(topItem);
+        item->setText(0, QString("硬件%1").arg(i + 1));
+
+        QTreeWidgetItem *childItem = new QTreeWidgetItem(item);
         childItem->setText(0, QString("目标码: %1").arg(lcl.Hws[i].target_code));
 
-        QTreeWidgetItem *childItem2 = new QTreeWidgetItem(topItem);
+        QTreeWidgetItem *childItem2 = new QTreeWidgetItem(item);
         childItem2->setText(0, QString("序列号: %1").arg(lcl.Hws[i].serial_code));
         for(int j = 0; j < lcl.Hws[i].number_part_number; j++)
         {
-            QTreeWidgetItem *childItem3 = new QTreeWidgetItem(topItem);
+            QTreeWidgetItem *childItem3 = new QTreeWidgetItem(item);
             childItem3->setText(0, QString("分区%1").arg(j + 1));
 
             QTreeWidgetItem *childItem31 =  new QTreeWidgetItem(childItem3);
