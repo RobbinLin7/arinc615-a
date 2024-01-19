@@ -21,7 +21,11 @@ void InformationThread::run(){
     while(status != END){
         switch (status) {
         case SEND_LCI_RRQ:
-            if(!Tftp::receiveFile(tftpClient, QString("%1/%2.LCI").arg(dir.dirName(), device->getName()), &errorMessage, &mainThreadExitedOrNot, Tftp::RRQ)){
+//            if(!Tftp::receiveFile(tftpClient, QString("%1/%2.LCI").arg(dir.dirName(), device->getName()), &errorMessage, &mainThreadExitedOrNot, Tftp::RRQ)){
+//                status = ERROR;
+//                break;
+//            }
+            if(!Tftp::get(tftpClient, dir.dirName(), QString("%1.LCI").arg(device->getName()), &errorMessage, QHostAddress("169.254.5.122"), 69)){
                 status = ERROR;
                 break;
             }
@@ -37,11 +41,15 @@ void InformationThread::run(){
             }
             port = tftpRequest->getPort();
             fileName = request.mid(2).split('\0').at(0);
-            tftpServer->disconnectFromHost();
-            tftpServer->connectToHost(device->getHostAddress(), port);
-            tftpRequest->lockMutex();
+            //tftpServer->disconnectFromHost();
+            //tftpServer->connectToHost(device->getHostAddress(), port);
+            //tftpRequest->lockMutex();
             if(fileName.split('.').size() == 2 && fileName.split('.').at(1) == "LCL"){
-                if(!Tftp::receiveFile(tftpServer, QString("%1/%2").arg(dir.dirName(), fileName), &errorMessage, &mainThreadExitedOrNot, Tftp::WRQ)){
+//                if(!Tftp::receiveFile(tftpServer, QString("%1/%2").arg(dir.dirName(), fileName), &errorMessage, &mainThreadExitedOrNot, Tftp::WRQ)){
+//                    status = ERROR;
+//                    break;
+//                }
+                if(!Tftp::handlePut(tftpServer, dir.dirName(), fileName, &errorMessage, QHostAddress("169.254.5.122"), 69, request)){
                     status = ERROR;
                     break;
                 }

@@ -1,5 +1,5 @@
 #include "tftp.h"
-
+#include <algorithm>
 QByteArray Tftp::makeTftpReadRequest(QString fileName, QString mode, quint16 valueOfBlockSize, quint16 valueOfTimeOut)
 {
     QByteArray request;
@@ -90,6 +90,17 @@ QByteArray Tftp::makeTftpError(quint16 errorCode, QString errorMessage)
     return error;
 }
 
+bool Tftp::checkDataBlockNo(const QByteArray &tftpPacket, unsigned short expectedBlockNo)
+{
+    if(getTftpPacketType(tftpPacket) != DATA || tftpPacket.size() < 4){
+        return false;
+    }
+    unsigned short high = static_cast<unsigned char>(tftpPacket[2]);
+    unsigned short low = static_cast<unsigned char>(tftpPacket[3]);
+    unsigned short blockNo = (high << 8) + low;
+    return blockNo == expectedBlockNo;
+}
+
 QByteArray Tftp::makeTftpOAck(const QMap<QString, QString> &options)
 {
     QByteArray oack;
@@ -109,19 +120,36 @@ QByteArray Tftp::makeTftpOAck(const QMap<QString, QString> &options)
     return oack;
 }
 
+QByteArray Tftp::makeTftpOAck(std::initializer_list<std::pair<std::string, std::string> > options)
+{
+    QByteArray oack;
 
-bool Tftp::get(QUdpSocket *uSock, QString path, QString fileName, QString *errorMessage, const QHostAddress& address, const quint16 port)
+    //1.opcode
+    oack.append('\0');
+    oack.append(6);
+
+    //2.every option and value
+    for(auto it = options.begin(); it != options.end(); ++it){
+        oack.append(it->first.data());
+        //oack.append('\0');
+        oack.append(it->second.data());
+        //oack.append('\0');
+    }
+    return oack;
+}
+
+
+bool Tftp::get(QUdpSocket *uSock, QString path, QString fileName, QString *errorMessage, const QHostAddress& host, const quint16 port)
 {
     QByteArray readRequest = makeTftpReadRequest(fileName);
     QByteArray response, ack;
-    QFile file(path + "/" + fileName);
     unsigned short retransTimes = 0;
     //1.consultation stage
 
     //1.1 send RRQ with options
     do{
-        uSock->writeDatagram(readRequest, address, port);
-    }while(++retransTimes < max_retrans_times &&
+        uSock->writeDatagram(readRequest, host, port);
+    }while(retransTimes++ < max_retrans_times &&
            (!uSock->waitForReadyRead(timeout * 1000) ||
             !uSock->readDatagram(response.data(), uSock->pendingDatagramSize()) ||
             getTftpPacketType(response) != OACK));
@@ -133,6 +161,7 @@ bool Tftp::get(QUdpSocket *uSock, QString path, QString fileName, QString *error
     //1.2 receive and parse OACK
     auto index = response.indexOf("blksize");
     if(index != -1){
+        index += sizeof("blksize");
         blkSize = 0;
         while(static_cast<char>(response[index]) != '\0'){
             blkSize = blkSize * 10 + static_cast<char>(response[index]) - '0';
@@ -141,6 +170,7 @@ bool Tftp::get(QUdpSocket *uSock, QString path, QString fileName, QString *error
     }
     index = response.indexOf("timeout");
     if(index != -1){
+        index += sizeof("timeout");
         timeout = 0;
         while(static_cast<char>(response[index]) != '\0'){
             timeout = timeout * 10 + static_cast<char>(response[index]) - '0';
@@ -150,28 +180,78 @@ bool Tftp::get(QUdpSocket *uSock, QString path, QString fileName, QString *error
 
     //1.3 send ACK 0
     ack = makeTftpAck(0);
-    uSock->writeDatagram(readRequest, address, port);
+    uSock->writeDatagram(readRequest, host, port);
 
 
 
     //2.data transfer stage
-    downLoad(uSock, path, fileName, errorMessage, address, port, ack);
+    return download(uSock, path, fileName, errorMessage, host, port, ack);
 
 }
 
-bool Tftp::downLoad(QUdpSocket *uSock, QString path, QString fileName, QString *errorMessage, const QHostAddress &address, const quint16 port, QByteArray lastPacketOfConsult)
+bool Tftp::handlePut(QUdpSocket *uSock, QString path, QString fileName, QString *errorMessage, const QHostAddress &host, const quint16 port, QByteArray writeRequest)
 {
+    //1.consulting stage
+    auto index = writeRequest.indexOf("blksize");
+    int blkSizeFromRequest = -1, timeoutFromRequest = -1;
+    if(index != -1){
+        index += sizeof("blksize");
+        blkSizeFromRequest = 0;
+        while(static_cast<char>(writeRequest[index]) != '\0'){
+            blkSizeFromRequest = blkSizeFromRequest * 10 + static_cast<char>(writeRequest[index]) - '0';
+            ++index;
+        }
+        //如果blkSizeFromRequest在范围内
+        blkSize = std::min(blkSize, static_cast<unsigned short>(blkSizeFromRequest));
+    }
+    index = writeRequest.indexOf("timeout");
+    if(index != -1){
+        index += sizeof("timeout");
+        timeoutFromRequest = 0;
+        while(static_cast<char>(writeRequest[index]) != '\0'){
+            timeoutFromRequest = timeoutFromRequest * 10 + static_cast<char>(writeRequest[index]) - '0';
+            ++index;
+        }
+        //如果timeoutFromRequest在范围内
+        timeout = std::min(timeout, static_cast<unsigned short>(timeoutFromRequest));
+    }
+    QByteArray oack = makeTftpOAck({std::make_pair(std::string("blkSize"), std::to_string(blkSize))});
+    uSock->writeDatagram(oack, host, port);
+    return download(uSock, path, fileName, errorMessage, host, port, oack);
+}
+
+bool Tftp::download(QUdpSocket *uSock, QString path, QString fileName, QString *errorMessage, const QHostAddress &host, const quint16 port, QByteArray lastPacketOfConsult)
+{
+    QFile file(path + "/" + fileName);
+    if(file.open(QIODevice::WriteOnly) == false){
+        *errorMessage = QString("文件打开失败%1").arg(fileName);
+        return false;
+    }
     QByteArray previousPacekt = lastPacketOfConsult;
-    unsigned short retransTimes = 0;
+    QByteArray dataPacket;
+    unsigned short transTimes = 0;
     unsigned short dataLen = 0;
+    unsigned short expectedBlockNo = 1;
     //while(uSock)
     do{
-
-    }while(dataLen == tftp)
+        while(transTimes++ < max_retrans_times &&
+              (!uSock->waitForReadyRead(timeout * 1000) ||
+               !(dataLen = uSock->readDatagram(dataPacket.data(), uSock->pendingDatagramSize())) ||
+               !checkDataBlockNo(dataPacket, expectedBlockNo))){
+            uSock->writeDatagram(previousPacekt, host, port);
+        }
+        if(transTimes == max_retrans_times){
+            *errorMessage = QString("等待DATA报文超时");
+            return false;
+        }
+        file.write(dataPacket.mid(4));
+        QByteArray ack = makeTftpAck(expectedBlockNo++);
+        uSock->writeDatagram(ack, host, port);
+        previousPacekt = ack;
+    }while(dataLen == blkSize);
+    file.close();
+    return true;
 }
-
-
-
 
 
 QByteArray Tftp::makeTftpData(char data[], int len, quint16 block){
