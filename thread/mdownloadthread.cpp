@@ -2,81 +2,81 @@
 
 void MDownloadThread::run()
 {
-    this->tftpClient = new QUdpSocket();
-    this->tftpServer = new QUdpSocket();
-    this->tftpClient->connectToHost(device->getHostAddress(), 69);
-    int totalTransNum = this->fileList.size();
-    int transNum = 0;
-    while(status != END){
-        waitTimes = 0;
-        switch (status) {
-        case SEND_LND_RRQ:
-        {
-            if(!Tftp::receiveFile(tftpClient, QString("%1/%2.LND").arg(dir.dirName(), device->getName()), &errorMessage, &mainThreadExitedOrNot, Tftp::RRQ)){
-                status = ERROR;
-                break;
-            }
-            if(waitStatusFileRcved(errorMessage, max_retrans_times * max_find_response_time_ms) == false){
-                status = ERROR;
-                break;
-            }
-            break;
-        }
-        case SEND_LNR_WRQ:
-        {
-            makeLNR();
-            if(!Tftp::sendFile(tftpClient, QString("%1/%2.LNR").arg(dir.dirName(), device->getName()), &errorMessage, &mainThreadExitedOrNot, Tftp::WRQ)){
-                status = ERROR;
-                break;
-            }
-            if(waitStatusFileRcved(errorMessage, max_retrans_times * max_find_response_time_ms) == false){
-                status = ERROR;
-                break;
-            }
-            break;
-        }
-        case WAIT_FILE_WRQ:{
-            //可能是第一个数据文件，也可能是最后一个LNS文件
-            QByteArray request = tftpRequest->getRequest(&mainThreadExitedOrNot);
-            if(request.size() == 0){
-                errorMessage = QString("等待设备端TFTP请求超时");
-                status = ERROR;
-                break;
-            }
-            quint16 port = tftpRequest->getPort();
-            QString fileName = request.mid(2).split('\0').at(0);
-            tftpServer->disconnectFromHost();
-            tftpServer->connectToHost(device->getHostAddress(), port);
-            tftpRequest->lockMutex();
-            if(!Tftp::receiveFile(tftpServer, QString("%1/%2").arg(dir.dirName(), fileName), &errorMessage, &mainThreadExitedOrNot, Tftp::WRQ)){
-                status = ERROR;
-                break;
-            }
-            emit mDownloadStatusMessage(QString("设备%1: 文件%2下载完成.(%3/%4)")
-                                        .arg(device->getName())
-                                        .arg(fileName)
-                                        .arg(++transNum)
-                                        .arg(totalTransNum));
-            emit mDownloadRate(transNum * 100 / totalTransNum, true);
-            if(waitStatusFileRcved(errorMessage, max_retrans_times * max_find_response_time_ms) == false){
-                status = ERROR;
-                break;
-            }
-            break;
-        }
-        case ERROR:
-            emit mDownloadStatusMessage(QString("设备%1: %2").arg(device->getName(), errorMessage));
-            emit mDownloadStatusMessage(QString("介质定义下载异常结束"));
-            emit mDownloadRate(0, false);
-            status = END;
-            break;
-        case END:
-            break;
-        default:
-            break;
-        }
-    }
-    emit threadFinish(true, QString(("介质定义下载结束")));
+//    this->tftpClient = new QUdpSocket();
+//    this->tftpServer = new QUdpSocket();
+//    this->tftpClient->connectToHost(device->getHostAddress(), 69);
+//    int totalTransNum = this->fileList.size();
+//    int transNum = 0;
+//    while(status != END){
+//        waitTimes = 0;
+//        switch (status) {
+//        case SEND_LND_RRQ:
+//        {
+//            if(!Tftp::receiveFile(tftpClient, QString("%1/%2.LND").arg(dir.dirName(), device->getName()), &errorMessage, &mainThreadExitedOrNot, Tftp::RRQ)){
+//                status = ERROR;
+//                break;
+//            }
+//            if(waitStatusFileRcved(errorMessage, max_retrans_times * max_find_response_time_ms) == false){
+//                status = ERROR;
+//                break;
+//            }
+//            break;
+//        }
+//        case SEND_LNR_WRQ:
+//        {
+//            makeLNR();
+//            if(!Tftp::sendFile(tftpClient, QString("%1/%2.LNR").arg(dir.dirName(), device->getName()), &errorMessage, &mainThreadExitedOrNot, Tftp::WRQ)){
+//                status = ERROR;
+//                break;
+//            }
+//            if(waitStatusFileRcved(errorMessage, max_retrans_times * max_find_response_time_ms) == false){
+//                status = ERROR;
+//                break;
+//            }
+//            break;
+//        }
+//        case WAIT_FILE_WRQ:{
+//            //可能是第一个数据文件，也可能是最后一个LNS文件
+//            QByteArray request = tftpRequest->getRequest(&mainThreadExitedOrNot);
+//            if(request.size() == 0){
+//                errorMessage = QString("等待设备端TFTP请求超时");
+//                status = ERROR;
+//                break;
+//            }
+//            quint16 port = tftpRequest->getPort();
+//            QString fileName = request.mid(2).split('\0').at(0);
+//            tftpServer->disconnectFromHost();
+//            tftpServer->connectToHost(device->getHostAddress(), port);
+//            tftpRequest->lockMutex();
+//            if(!Tftp::receiveFile(tftpServer, QString("%1/%2").arg(dir.dirName(), fileName), &errorMessage, &mainThreadExitedOrNot, Tftp::WRQ)){
+//                status = ERROR;
+//                break;
+//            }
+//            emit mDownloadStatusMessage(QString("设备%1: 文件%2下载完成.(%3/%4)")
+//                                        .arg(device->getName())
+//                                        .arg(fileName)
+//                                        .arg(++transNum)
+//                                        .arg(totalTransNum));
+//            emit mDownloadRate(transNum * 100 / totalTransNum, true);
+//            if(waitStatusFileRcved(errorMessage, max_retrans_times * max_find_response_time_ms) == false){
+//                status = ERROR;
+//                break;
+//            }
+//            break;
+//        }
+//        case ERROR:
+//            emit mDownloadStatusMessage(QString("设备%1: %2").arg(device->getName(), errorMessage));
+//            emit mDownloadStatusMessage(QString("介质定义下载异常结束"));
+//            emit mDownloadRate(0, false);
+//            status = END;
+//            break;
+//        case END:
+//            break;
+//        default:
+//            break;
+//        }
+//    }
+//    emit threadFinish(true, QString(("介质定义下载结束")));
 }
 
 void MDownloadThread::makeLNR()

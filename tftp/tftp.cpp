@@ -1,5 +1,8 @@
 #include "tftp.h"
 #include <algorithm>
+extern unsigned short blksize;
+extern unsigned short timeout;
+extern unsigned short retrans_times;
 QByteArray Tftp::makeTftpReadRequest(QString fileName, QString mode, quint16 valueOfBlockSize, quint16 valueOfTimeOut)
 {
     QByteArray request;
@@ -90,6 +93,14 @@ QByteArray Tftp::makeTftpError(quint16 errorCode, QString errorMessage)
     return error;
 }
 
+Tftp::TftpPacketType Tftp::getTftpPacketType(const QByteArray &tftpPacket)
+{
+    if(tftpPacket.size() > 2 && tftpPacket[1] <= 6){
+        return static_cast<TftpPacketType>(tftpPacket[1]);
+    }
+    return UNDEFINED;
+}
+
 bool Tftp::checkDataBlockNo(const QByteArray &tftpPacket, unsigned short expectedBlockNo)
 {
     if(getTftpPacketType(tftpPacket) != DATA || tftpPacket.size() < 4){
@@ -143,17 +154,19 @@ bool Tftp::get(QUdpSocket *uSock, QString path, QString fileName, QString *error
 {
     QByteArray readRequest = makeTftpReadRequest(fileName);
     QByteArray response, ack;
+    response.reserve(blksize + 4);
     unsigned short retransTimes = 0;
     //1.consultation stage
-
     //1.1 send RRQ with options
     do{
         uSock->writeDatagram(readRequest, host, port);
     }while(retransTimes++ < max_retrans_times &&
            (!uSock->waitForReadyRead(timeout * 1000) ||
-            !uSock->readDatagram(response.data(), uSock->pendingDatagramSize()) ||
+            uSock->pendingDatagramSize() <= 0 ||
+            uSock->readDatagram(response.data(), uSock->pendingDatagramSize()) <= 0 ||
             getTftpPacketType(response) != OACK));
-    if(retransTimes == max_retrans_times){
+    qDebug() << retransTimes << max_retrans_times;
+    if(retransTimes >= max_retrans_times){
         *errorMessage = QString("等待OACK报文超时");
         return false;
     }
@@ -162,9 +175,9 @@ bool Tftp::get(QUdpSocket *uSock, QString path, QString fileName, QString *error
     auto index = response.indexOf("blksize");
     if(index != -1){
         index += sizeof("blksize");
-        blkSize = 0;
+        blksize = 0;
         while(static_cast<char>(response[index]) != '\0'){
-            blkSize = blkSize * 10 + static_cast<char>(response[index]) - '0';
+            blksize = blksize * 10 + static_cast<char>(response[index]) - '0';
             ++index;
         }
     }
@@ -202,7 +215,7 @@ bool Tftp::handlePut(QUdpSocket *uSock, QString path, QString fileName, QString 
             ++index;
         }
         //如果blkSizeFromRequest在范围内
-        blkSize = std::min(blkSize, static_cast<unsigned short>(blkSizeFromRequest));
+        blksize = std::min(blksize, static_cast<unsigned short>(blkSizeFromRequest));
     }
     index = writeRequest.indexOf("timeout");
     if(index != -1){
@@ -215,7 +228,7 @@ bool Tftp::handlePut(QUdpSocket *uSock, QString path, QString fileName, QString 
         //如果timeoutFromRequest在范围内
         timeout = std::min(timeout, static_cast<unsigned short>(timeoutFromRequest));
     }
-    QByteArray oack = makeTftpOAck({std::make_pair(std::string("blkSize"), std::to_string(blkSize))});
+    QByteArray oack = makeTftpOAck({std::make_pair(std::string("blkSize"), std::to_string(blksize))});
     uSock->writeDatagram(oack, host, port);
     return download(uSock, path, fileName, errorMessage, host, port, oack);
 }
@@ -229,6 +242,7 @@ bool Tftp::download(QUdpSocket *uSock, QString path, QString fileName, QString *
     }
     QByteArray previousPacekt = lastPacketOfConsult;
     QByteArray dataPacket;
+    dataPacket.resize(blksize + 4);
     unsigned short transTimes = 0;
     unsigned short dataLen = 0;
     unsigned short expectedBlockNo = 1;
@@ -248,7 +262,7 @@ bool Tftp::download(QUdpSocket *uSock, QString path, QString fileName, QString *
         QByteArray ack = makeTftpAck(expectedBlockNo++);
         uSock->writeDatagram(ack, host, port);
         previousPacekt = ack;
-    }while(dataLen == blkSize);
+    }while(dataLen == blksize);
     file.close();
     return true;
 }
