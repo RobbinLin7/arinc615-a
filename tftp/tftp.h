@@ -8,15 +8,11 @@
 //#define MAX_RETRANS_TIMES 20
 //#define WAIT_TIME_MS 2000
 
-extern unsigned short blkSize;
-extern unsigned short timeout;
-//extern unsigned short retrans_times;
-
 class Tftp
 {
 public:
     Tftp();
-    enum TftpPacketType{RRQ, WRQ, DATA, ACK, ERROR, OACK};
+    enum TftpPacketType{RRQ, WRQ, DATA, ACK, ERROR, OACK, UNDEFINED};
     //static bool sendFile(QUdpSocket *uSock, QString fileName, QString* errorMessage, bool* mainThreadExitedOrNot, enum TftpMode tftpMode = RRQ);
     //static bool sendFile_GBN(QUdpSocket *uSock, QString fileName, QString* errorMessage, bool* mainThreadExitedOrNot, enum TftpMode tftpMode = RRQ);
     //static bool receiveFile(QUdpSocket *uSock, QString fileName, QString* errorMessage, bool* mainThreadExitedOrNot, enum TftpMode tftpMode = RRQ);

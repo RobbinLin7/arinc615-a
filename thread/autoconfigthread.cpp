@@ -2,43 +2,43 @@
 #include "mythread.h"
 
 void AutoConfigThread::run(){
-    qDebug() << "AutoConfigThread::run";
-    this->tftpClient = new QUdpSocket();
-    this->tftpServer = new QUdpSocket();
+//    qDebug() << "AutoConfigThread::run";
+//    this->tftpClient = new QUdpSocket();
+//    this->tftpServer = new QUdpSocket();
 
-    this->tftpClient->connectToHost(device->getHostAddress(), 69);
-    connect((UploadThread*)uploadThread, &UploadThread::uploadResult, this, [=](bool result){
-        if(result) uploadComplete = 1;
-        else uploadComplete = -1;
-    }, Qt::QueuedConnection);
-    connect((UploadThread*)uploadThread, &UploadThread::uploadStatusMessage, this, [=](QString message){
-        emit(autoConfigStatusMessage(message));
-    });
-    connect(this, &AutoConfigThread::sendLUSInfSignal, (UploadThread*)uploadThread, &UploadThread::rcvStatusCodeAndMessageSlot);
-    //connect((uploadThread*)uploadThread, &UploadThread::)
-    //uploadThread->setAutoDelete(true);
-    //uploadThread->run();
-    uploadThread->setAutoDelete(true);
-    pool->start(uploadThread);
-    this->tftpRequest->lockMutex();
-    while(uploadComplete == 0 && !mainThreadExitedOrNot){
-        QThread::msleep(200);
-    }
-    if(mainThreadExitedOrNot){
-        emit(threadFinish(true, QString(tr("主线程已退出"))));
-        return;
-    }
-    if(uploadComplete != 1){
-        emit(autoConfigStatusMessage(QString("上传操作出现异常，自动化操作异常退出")));
-        emit(autoConfigRate(0, false));
-        emit(threadFinish(true, QString(tr("自动化操作异常结束"))));
-        return;
-    }
-    else{
-        emit(autoConfigStatusMessage(QString("自动化操作-上传操作完成")));
-        emit(autoConfigRate(33, true));
-        startDownload();
-    }
+//    this->tftpClient->connectToHost(device->getHostAddress(), 69);
+//    connect((UploadThread*)uploadThread, &UploadThread::uploadResult, this, [=](bool result){
+//        if(result) uploadComplete = 1;
+//        else uploadComplete = -1;
+//    }, Qt::QueuedConnection);
+//    connect((UploadThread*)uploadThread, &UploadThread::uploadStatusMessage, this, [=](QString message){
+//        emit(autoConfigStatusMessage(message));
+//    });
+//    connect(this, &AutoConfigThread::sendLUSInfSignal, (UploadThread*)uploadThread, &UploadThread::rcvStatusCodeAndMessageSlot);
+//    //connect((uploadThread*)uploadThread, &UploadThread::)
+//    //uploadThread->setAutoDelete(true);
+//    //uploadThread->run();
+//    uploadThread->setAutoDelete(true);
+//    pool->start(uploadThread);
+//    this->tftpRequest->lockMutex();
+//    while(uploadComplete == 0 && !mainThreadExitedOrNot){
+//        QThread::msleep(200);
+//    }
+//    if(mainThreadExitedOrNot){
+//        emit(threadFinish(true, QString(tr("主线程已退出"))));
+//        return;
+//    }
+//    if(uploadComplete != 1){
+//        emit(autoConfigStatusMessage(QString("上传操作出现异常，自动化操作异常退出")));
+//        emit(autoConfigRate(0, false));
+//        emit(threadFinish(true, QString(tr("自动化操作异常结束"))));
+//        return;
+//    }
+//    else{
+//        emit(autoConfigStatusMessage(QString("自动化操作-上传操作完成")));
+//        emit(autoConfigRate(33, true));
+//        startDownload();
+//    }
 }
 
 void AutoConfigThread::startDownload()
