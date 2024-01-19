@@ -755,86 +755,86 @@ QByteArray Tftp::makeTftpOAck(const QMap<QString, QString> &options)
 }
 
 
-bool Tftp::put(QUdpSocket *uSock, QString path, QString fileName, QString *errorMessage)
-{
+//bool Tftp::put(QUdpSocket *uSock, QString path, QString fileName, QString *errorMessage)
+//{
 
 
-    QFile file(path + '/' +fileName);
-       if(!file.open(QIODevice::ReadOnly)){
-           *errorMessage = QString("文件%1打开失败").arg(fileName);
-           return false;
-       }
+//    QFile file(path + '/' +fileName);
+//       if(!file.open(QIODevice::ReadOnly)){
+//           *errorMessage = QString("文件%1打开失败").arg(fileName);
+//           return false;
+//       }
 
-//       int dataLen = -1;
-//       quint16 block = 1;
-//       char data[blkSize];
-//       memset(data, 0, sizeof(data));
-       QByteArray wrq = makeTftpWriteRequest(fileName);
-       bool readyRead = false;
+////       int dataLen = -1;
+////       quint16 block = 1;
+////       char data[blkSize];
+////       memset(data, 0, sizeof(data));
+//       QByteArray wrq = makeTftpWriteRequest(fileName);
+//       bool readyRead = false;
 
-       do{
-           uSock->write(wrq.data(), wrq.size());
-           retrans_times++;
-           readyRead = uSock->waitForReadyRead(wait_time_ms);
-       }while(!readyRead && retrans_times < max_retrans_times);
+//       do{
+//           uSock->write(wrq.data(), wrq.size());
+//           retrans_times++;
+//           readyRead = uSock->waitForReadyRead(wait_time_ms);
+//       }while(!readyRead && retrans_times < max_retrans_times);
 
-       //如果一直没有接收到wrq的Oack包
-       if(!readyRead){
-           *errorMessage = QString("%1写请求相应超时").arg(fileName);
-           return false;
-       }else{
-           //先读取得到的oack包
-           if(uSock->pendingDatagramSize() < 2){
-                *errorMessage = QString("文件%1:OACK报文格式有误").arg(fileName);
-                return false;
-           }
-           QByteArray oAck;
-           oAck.resize(uSock->pendingDatagramSize());
-           uSock->read(oAck.data(),oAck.size());
-           parseOACK(oAck);//设置blksize和timeout的值
-       }
-       //之后的data报文和ack报文交互环节
-       do{
+//       //如果一直没有接收到wrq的Oack包
+//       if(!readyRead){
+//           *errorMessage = QString("%1写请求相应超时").arg(fileName);
+//           return false;
+//       }else{
+//           //先读取得到的oack包
+//           if(uSock->pendingDatagramSize() < 2){
+//                *errorMessage = QString("文件%1:OACK报文格式有误").arg(fileName);
+//                return false;
+//           }
+//           QByteArray oAck;
+//           oAck.resize(uSock->pendingDatagramSize());
+//           uSock->read(oAck.data(),oAck.size());
+//           parseOACK(oAck);//设置blksize和timeout的值
+//       }
+//       //之后的data报文和ack报文交互环节
+//       do{
 
-           int dataLen = -1;
-           quint16 block = 1;
-           quint16 ackNo = 0;
-           unsigned int retrans_times = 0;
-           bool readyRead = false;
-           char data[blkSize];
-           memset(data, 0, sizeof(data));
-           QByteArray tftpData, ack;
+//           int dataLen = -1;
+//           quint16 block = 1;
+//           quint16 ackNo = 0;
+//           unsigned int retrans_times = 0;
+//           bool readyRead = false;
+//           char data[blkSize];
+//           memset(data, 0, sizeof(data));
+//           QByteArray tftpData, ack;
 
 
 
-           dataLen = file.read(data, blkSize);
-           tftpData = makeTftpData(data, dataLen, block);
-           //当readReady为True并且接收到正确编号的ACK报文后或者重传次数超出后跳出
-           while((!readyRead || block != ackNo) && retrans_times <= max_retrans_times){
-               uSock->write(tftpData.data(), tftpData.size());
-               readyRead = uSock->waitForReadyRead(wait_time_ms);//设置3秒的超时时间
-               if(readyRead){
-                   if(uSock->pendingDatagramSize() < 4){
-                       *errorMessage = QString("%1:设备端端口不可达").arg(fileName);
-                       return false;
-                   }
-                   ack.resize(uSock->pendingDatagramSize());
-                   uSock->read(ack.data(), ack.size());
-                   quint16 high = (unsigned char)ack.at(2);
-                   quint16 low = (unsigned char)ack.at(3);
-                   ackNo = (high << 8) + low;
-               }
-               retrans_times++;
-           }
-           if(retrans_times > max_retrans_times){
-               *errorMessage = QString("等待%1:ACK数据包超时").arg(fileName);
-               return false;
-           }
-           block++;
-       }while(dataLen == TFTP_NOT_LAST_DATA_LEN);//直到组成一个512字节的data包
-       file.close();
-       return true;
-}
+//           dataLen = file.read(data, blkSize);
+//           tftpData = makeTftpData(data, dataLen, block);
+//           //当readReady为True并且接收到正确编号的ACK报文后或者重传次数超出后跳出
+//           while((!readyRead || block != ackNo) && retrans_times <= max_retrans_times){
+//               uSock->write(tftpData.data(), tftpData.size());
+//               readyRead = uSock->waitForReadyRead(wait_time_ms);//设置3秒的超时时间
+//               if(readyRead){
+//                   if(uSock->pendingDatagramSize() < 4){
+//                       *errorMessage = QString("%1:设备端端口不可达").arg(fileName);
+//                       return false;
+//                   }
+//                   ack.resize(uSock->pendingDatagramSize());
+//                   uSock->read(ack.data(), ack.size());
+//                   quint16 high = (unsigned char)ack.at(2);
+//                   quint16 low = (unsigned char)ack.at(3);
+//                   ackNo = (high << 8) + low;
+//               }
+//               retrans_times++;
+//           }
+//           if(retrans_times > max_retrans_times){
+//               *errorMessage = QString("等待%1:ACK数据包超时").arg(fileName);
+//               return false;
+//           }
+//           block++;
+//       }while(dataLen == TFTP_NOT_LAST_DATA_LEN);//直到组成一个512字节的data包
+//       file.close();
+//       return true;
+//}
 
 
 void parseOACK(QByteArray &oackData) {
@@ -874,6 +874,59 @@ bool Tftp::handleGet(QUdpSocket *uSock, QString path, QString fileName, QString 
 }
 
 
+
+bool Tftp::put(QUdpSocket *uSock, QString path, QString fileName, QString *errorMessage, const QHostAddress &address, const quint16 port)
+{
+    QByteArray wrq = makeTftpWriteRequest(fileName);
+    QByteArray oack,ack;
+
+    do{
+        uSock->writeDatagram(wrq, address, port);
+    }while(retrans_times++ < max_retrans_times &&
+           !uSock->waitForReadyRead(timeout * 1000));
+    //报错
+
+    //接受oack报文
+
+    //oack报文格式出错？
+    if(uSock->pendingDatagramSize()<2){
+
+    }
+    oack.resize(uSock->pendingDatagramSize());
+    uSock->readDatagram(oack.data(),oack.size());
+
+    //解析接收到的oack报文
+    auto index = oack.indexOf("blksize");
+    if(index != -1){
+        blkSize = 0;
+        while(static_cast<char>(oack[index]) != '\0'){
+            blkSize = blkSize * 10 + static_cast<char>(oack[index]) - '0';
+            ++index;
+        }
+    }
+    index = oack.indexOf("timeout");
+    if(index != -1){
+        timeout = 0;
+        while(static_cast<char>(oack[index]) != '\0'){
+            timeout = timeout * 10 + static_cast<char>(oack[index]) - '0';
+            ++index;
+        }
+    }
+
+    //构造并且发后续的ack报文
+    ack = makeTftpAck(0);
+    do{
+        uSock->writeDatagram(ack, address, port);
+    }while(retrans_times++ < max_retrans_times && !uSock->waitForReadyRead(timeout * 1000));
+    if(retrans_times == max_retrans_times){//超时报错
+
+    }
+
+    //后续的data报文和ack报文交互环节
+    upload(uSock, path, fileName, errorMessage, address, port, ack);
+
+
+}
 
 bool Tftp::get(QUdpSocket *uSock, QString path, QString fileName, QString *errorMessage, const QHostAddress& address, const quint16 port)
 {
@@ -933,6 +986,26 @@ bool Tftp::downLoad(QUdpSocket *uSock, QString path, QString fileName, QString *
     do{
 
     }while(dataLen == tftp)
+}
+
+bool Tftp::upload(QUdpSocket *uSock, QString path, QString fileName, QString *errorMessage, const QHostAddress &address, const quint16 port, QByteArray lastPacketOfConsult)
+{
+     QByteArray previousPacekt = lastPacketOfConsult;
+     QFile file(path + '/' +fileName);
+     if(!file.open(QIODevice::WriteOnly)){
+        *errorMessage = QString("文件%1:打开失败").arg(fileName);
+        return false;
+     }
+
+     while()
+
+
+
+
+
+
+
+
 }
 
 
