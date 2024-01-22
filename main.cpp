@@ -5,12 +5,12 @@
 #include <windows.h>
 #endif
 char dir[256];
-size_t max_retrans_times = 20;
+size_t max_retrans_times = 5;
 size_t wait_time_ms = 2000;
 size_t max_find_response_time_ms = 1000;
 size_t state_file_send_interval = 10000;
-unsigned short blksize = 512;
-unsigned short timeout = 2;
+unsigned short blksize_default = 512;
+unsigned short timeout_default = 2;
 
 bool checkOnly(HANDLE* m_hMutex)
 {

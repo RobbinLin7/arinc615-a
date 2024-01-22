@@ -25,13 +25,12 @@ public:
     static bool get(QUdpSocket* uSock, QString path, QString fileName, QString* errorMessage, const QHostAddress& host, const quint16 port);
     static bool handlePut(QUdpSocket* uSock, QString path, QString fileName, QString* errorMessage, const QHostAddress& host, const quint16 port, QByteArray writeRequest);
     static bool handleGet(QUdpSocket* uSock, QString path, QString fileName, QString* errorMessage, const QHostAddress& host, const quint16 port, QByteArray readRequest);
-    static bool download(QUdpSocket* uSock, QString path, QString fileName, QString* errorMessage, const QHostAddress& host, const quint16 port, QByteArray lastPacketOfConsult);
-    static bool upload(QUdpSocket* uSock, QString path, QString fileName, QString* errorMessage, const QHostAddress& host, const quint16 port, QByteArray lastPacketOfConsult);
+    static bool download(QUdpSocket* uSock, QString path, QString fileName, QString* errorMessage, const QHostAddress& host, const quint16 port, QByteArray lastPacketOfConsult, unsigned short blksize, unsigned short timeout);
+    static bool upload(QUdpSocket* uSock, QString path, QString fileName, QString* errorMessage, const QHostAddress& host, const quint16 port, QByteArray lastPacketOfConsult, unsigned short blksize, unsigned short timeout);
     static QByteArray makeTftpData(char data[], int len, quint16 block);
     static QByteArray makeTftpReadRequest(QString fileName, QString mode = "octet", quint16 valueOfBlockSize = 512, quint16 valueOfTimeOut = 2);
     static QByteArray makeTftpWriteRequest(QString fileName, QString mode = "octet", quint16 valueOfBlockSize = 512, quint16 valueOfTimeOut = 2);
     static QByteArray makeTftpAck(quint16 block);
-    static QByteArray makeTftpOAck(const QMap<QString,QString> &options);
     static QByteArray makeTftpOAck(std::initializer_list<std::pair<std::string, std::string>> options);
     static QByteArray makeTftpError(quint16 errorCode, QString errorMessage);
 
@@ -40,9 +39,11 @@ public:
 };
 
 
-struct Packet{
-    QByteArray data;
-    unsigned int dataLen;
-};
+
+
+//struct Packet{
+//    QByteArray data;
+//    unsigned int dataLen;
+//};
 
 #endif // TFTP_H
