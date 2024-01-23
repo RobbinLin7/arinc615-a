@@ -107,7 +107,18 @@ Tftp::TftpPacketType Tftp::getTftpPacketType(const QByteArray &tftpPacket)
 
 bool Tftp::checkBlockNo(const QByteArray &tftpPacket, unsigned short No)
 {
-    if(getTftpPacketType(tftpPacket) != DATA || getTftpPacketType(tftpPacket) != ACK ||
+    if(getTftpPacketType(tftpPacket) != DATA ||
+            tftpPacket.size() < 4){
+        return false;
+    }
+    unsigned short high = static_cast<unsigned char>(tftpPacket[2]);
+    unsigned short low = static_cast<unsigned char>(tftpPacket[3]);
+    unsigned short blockNo = (high << 8) + low;
+    return blockNo == No;
+}
+
+bool Tftp::checkAckNo(const QByteArray& tftpPacket, unsigned short No){
+    if(getTftpPacketType(tftpPacket) != ACK ||
             tftpPacket.size() < 4){
         return false;
     }
@@ -127,9 +138,9 @@ QByteArray Tftp::makeTftpOAck(std::initializer_list<std::pair<std::string, std::
     //2.every option and value
     for(auto it = options.begin(); it != options.end(); ++it){
         oack.append(it->first.data());
-        //oack.append('\0');
+        oack.append('\0');
         oack.append(it->second.data());
-        //oack.append('\0');
+        oack.append('\0');
     }
     return oack;
 }
@@ -231,11 +242,12 @@ bool Tftp::get(QUdpSocket *uSock, QString path, QString fileName, QString *error
 
     //1.3 send ACK 0
     ack = makeTftpAck(0);
-    uSock->writeDatagram(readRequest, host, port);
+    uSock->writeDatagram(ack, host, port);
 
 
 
     //2.data transfer stage
+    //uSock->readAll();
     return download(uSock, path, fileName, errorMessage, host, port, ack, blksize, timeout);
 
 }

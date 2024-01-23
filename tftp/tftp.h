@@ -36,6 +36,7 @@ public:
 
     static TftpPacketType getTftpPacketType(const QByteArray& tftpPacket);
     static bool checkBlockNo(const QByteArray& tftpPacket, unsigned short No);
+    static bool checkAckNo(const QByteArray& tftpPacket, unsigned short No);
 };
 
 

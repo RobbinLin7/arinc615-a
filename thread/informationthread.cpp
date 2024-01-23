@@ -49,7 +49,7 @@ void InformationThread::run(){
 //                    status = ERROR;
 //                    break;
 //                }
-                if(!Tftp::handlePut(tftpServer, dir.dirName(), fileName, &errorMessage, QHostAddress("169.254.5.122"), 69, request)){
+                if(!Tftp::handlePut(tftpServer, dir.dirName(), fileName, &errorMessage, QHostAddress(device->getHostAddress()), port, request)){
                     status = ERROR;
                     break;
                 }
