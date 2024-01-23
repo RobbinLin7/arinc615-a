@@ -6,12 +6,12 @@
 
 void InformationThread::run(){
     this->tftpClient = new QUdpSocket();
-    bool flag = this->tftpClient->bind(2058);
-    if(flag) qDebug() << "绑定成功";
-    else{
-        qDebug() << "绑定失败";
-        return;
-    }
+//    bool flag = this->tftpClient->bind(2058);
+//    if(flag) qDebug() << "绑定成功";
+//    else{
+//        qDebug() << "绑定失败";
+//        return;
+//    }
     this->tftpServer = new QUdpSocket();
     //this->tftpClient->connectToHost(device->getHostAddress(), 69);
     QString errorMessage;
@@ -25,7 +25,7 @@ void InformationThread::run(){
 //                status = ERROR;
 //                break;
 //            }
-            if(!Tftp::get(tftpClient, dir.dirName(), QString("%1.LCI").arg(device->getName()), &errorMessage, QHostAddress("169.254.5.122"), 69)){
+            if(!Tftp::get(tftpClient, dir.dirName(), QString("%1.LCI").arg(device->getName()), &errorMessage, QHostAddress(device->getHostAddress()), 69)){
                 status = ERROR;
                 break;
             }
