@@ -651,7 +651,7 @@ void MainWindow::find(int index){
     //发送FIND请求报文
     uSock = new QUdpSocket(this);
     uSock->bind(QHostAddress::AnyIPv4, 0, QUdpSocket::ShareAddress);
-    uSock->writeDatagram(datagram.data(), datagram.size(), entry->broadcast(), 1001);
+    uSock->writeDatagram(datagram.data(), datagram.size(), QHostAddress("169.254.5.122"), 1001);
     //在规定时间内接收FIND响应包
     connect(uSock, &QUdpSocket::readyRead, this, &MainWindow::parseFindResponse);
     connect(timer.get(), &QTimer::timeout, this, &MainWindow::onTimerTimeout);
