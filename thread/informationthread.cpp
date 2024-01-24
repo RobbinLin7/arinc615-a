@@ -77,7 +77,7 @@ void InformationThread::run(){
 }
 
 File_LCL* InformationThread::parseLCL(){
-    QFile LCL(QString("%1/%2_%3.LCL").arg(dir.dirName(), device->getName(), device->getPosition()));
+    QFile LCL(QString("%1/%2.LCL").arg(dir.dirName(), device->getName()));
     File_LCL *LCL_struct = (File_LCL*)malloc(sizeof(File_LCL));
     if(LCL.open(QIODevice::ReadOnly)){
         qDebug() << "文件打开成功";
