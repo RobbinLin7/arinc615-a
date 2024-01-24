@@ -6,14 +6,7 @@
 
 void InformationThread::run(){
     this->tftpClient = new QUdpSocket();
-//    bool flag = this->tftpClient->bind(2058);
-//    if(flag) qDebug() << "绑定成功";
-//    else{
-//        qDebug() << "绑定失败";
-//        return;
-//    }
     this->tftpServer = new QUdpSocket();
-    //this->tftpClient->connectToHost(device->getHostAddress(), 69);
     QString errorMessage;
     QByteArray request;
     quint16 port;
@@ -21,11 +14,7 @@ void InformationThread::run(){
     while(status != END){
         switch (status) {
         case SEND_LCI_RRQ:
-//            if(!Tftp::receiveFile(tftpClient, QString("%1/%2.LCI").arg(dir.dirName(), device->getName()), &errorMessage, &mainThreadExitedOrNot, Tftp::RRQ)){
-//                status = ERROR;
-//                break;
-//            }
-            if(!Tftp::get(tftpClient, dir.dirName(), QString("%1.LCI").arg(device->getName()), &errorMessage, QHostAddress("169.254.5.122"), 69)){
+            if(!Tftp::get(tftpClient, dir.dirName(), QString("%1.LCI").arg(device->getName()), &errorMessage, QHostAddress(device->getHostAddress()), 69)){
                 status = ERROR;
                 break;
             }
@@ -41,15 +30,8 @@ void InformationThread::run(){
             }
             port = tftpRequest->getPort();
             fileName = request.mid(2).split('\0').at(0);
-            //tftpServer->disconnectFromHost();
-            //tftpServer->connectToHost(device->getHostAddress(), port);
-            //tftpRequest->lockMutex();
             if(fileName.split('.').size() == 2 && fileName.split('.').at(1) == "LCL"){
-//                if(!Tftp::receiveFile(tftpServer, QString("%1/%2").arg(dir.dirName(), fileName), &errorMessage, &mainThreadExitedOrNot, Tftp::WRQ)){
-//                    status = ERROR;
-//                    break;
-//                }
-                if(!Tftp::handlePut(tftpServer, dir.dirName(), fileName, &errorMessage, QHostAddress("169.254.5.122"), 69, request)){
+                if(!Tftp::handlePut(tftpServer, dir.dirName(), fileName, &errorMessage, QHostAddress(device->getHostAddress()), port, request)){
                     status = ERROR;
                     break;
                 }
@@ -77,7 +59,7 @@ void InformationThread::run(){
 }
 
 File_LCL* InformationThread::parseLCL(){
-    QFile LCL(QString("%1/%2_%3.LCL").arg(dir.dirName(), device->getName(), device->getPosition()));
+    QFile LCL(QString("%1/%2.LCL").arg(dir.dirName(), device->getName()));
     File_LCL *LCL_struct = (File_LCL*)malloc(sizeof(File_LCL));
     if(LCL.open(QIODevice::ReadOnly)){
         qDebug() << "文件打开成功";

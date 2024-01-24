@@ -25,8 +25,8 @@ public:
     static bool get(QUdpSocket* uSock, QString path, QString fileName, QString* errorMessage, const QHostAddress& host, const quint16 port);
     static bool handlePut(QUdpSocket* uSock, QString path, QString fileName, QString* errorMessage, const QHostAddress& host, const quint16 port, QByteArray writeRequest);
     static bool handleGet(QUdpSocket* uSock, QString path, QString fileName, QString* errorMessage, const QHostAddress& host, const quint16 port, QByteArray readRequest);
-    static bool download(QUdpSocket* uSock, QString path, QString fileName, QString* errorMessage, const QHostAddress& host, const quint16 port, QByteArray lastPacketOfConsult, unsigned short blksize, unsigned short timeout);
-    static bool upload(QUdpSocket* uSock, QString path, QString fileName, QString* errorMessage, const QHostAddress& host, const quint16 port, QByteArray lastPacketOfConsult, unsigned short blksize, unsigned short timeout);
+    static bool download(QUdpSocket* uSock, QString path, QString fileName, QString* errorMessage, const QHostAddress& host, const quint16 port, unsigned short blksize, unsigned short timeout, QByteArray& lastPacket);
+    static bool upload(QUdpSocket* uSock, QString path, QString fileName, QString* errorMessage, const QHostAddress& host, const quint16 port, unsigned short blksize, unsigned short timeout);
     static QByteArray makeTftpData(char data[], int len, quint16 block);
     static QByteArray makeTftpReadRequest(QString fileName, QString mode = "octet", quint16 valueOfBlockSize = 512, quint16 valueOfTimeOut = 2);
     static QByteArray makeTftpWriteRequest(QString fileName, QString mode = "octet", quint16 valueOfBlockSize = 512, quint16 valueOfTimeOut = 2);
@@ -36,6 +36,7 @@ public:
 
     static TftpPacketType getTftpPacketType(const QByteArray& tftpPacket);
     static bool checkBlockNo(const QByteArray& tftpPacket, unsigned short No);
+    static bool checkAckNo(const QByteArray& tftpPacket, unsigned short No);
 };
 
 
