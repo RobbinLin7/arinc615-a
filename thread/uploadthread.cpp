@@ -18,7 +18,7 @@ void UploadThread::run()
 //        waitTimes = 0;
 //        switch (status) {
 //        case SEND_LUI_RRQ:
-//            if(!Tftp::receiveFile(tftpClient, QString("%1/%2.LUI").arg(dir.dirName(), device->getName()), &errorMessage, &mainThreadExitedOrNot, Tftp::RRQ)){
+//            if(!Tftp::get(tftpClient, dir.dirName(), QString("&1.LUI").arg(device->getName()), &errorMessage, QHostAddress(""), port)){
 //                status = ERROR;
 //                break;
 //            }
@@ -39,7 +39,7 @@ void UploadThread::run()
 //                status = ERROR;
 //                break;
 //            }
-//            emit(uploadStatusMessage("LUR发送完成"));
+////            emit(uploadStatusMessage("LUR发送完成"));
 //            status = WAIT_LUH_RRQ;
 //            break;
 //        case WAIT_LUH_RRQ:
