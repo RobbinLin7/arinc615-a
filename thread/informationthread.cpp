@@ -6,12 +6,12 @@
 
 void InformationThread::run(){
     this->tftpClient = new QUdpSocket();
-    bool flag = this->tftpClient->bind(2058);
-    if(flag) qDebug() << "绑定成功";
-    else{
-        qDebug() << "绑定失败";
-        return;
-    }
+//    bool flag = this->tftpClient->bind(2058);
+//    if(flag) qDebug() << "绑定成功";
+//    else{
+//        qDebug() << "绑定失败";
+//        return;
+//    }
     this->tftpServer = new QUdpSocket();
     //this->tftpClient->connectToHost(device->getHostAddress(), 69);
     QString errorMessage;
