@@ -11,6 +11,7 @@ size_t max_find_response_time_ms = 1000;
 size_t state_file_send_interval = 10000;
 unsigned short blksize_default = 512;
 unsigned short timeout_default = 2;
+unsigned short maxRetransmit_default = 5;
 
 bool checkOnly(HANDLE* m_hMutex)
 {

@@ -29,8 +29,8 @@ public:
     static bool upload(QUdpSocket* uSock, QString path, QString fileName, QString* errorMessage, const QHostAddress& host, const quint16 port, unsigned short blksize, unsigned short timeout, unsigned short maxRetransmit);
 
     static QByteArray makeTftpData(char data[], int len, quint16 block);
-    static QByteArray makeTftpReadRequest(QString fileName, QString mode = "octet", quint16 valueOfBlockSize = 512, quint16 valueOfTimeOut = 2);
-    static QByteArray makeTftpWriteRequest(QString fileName, QString mode = "octet", quint16 valueOfBlockSize = 512, quint16 valueOfTimeOut = 2);
+    static QByteArray makeTftpReadRequest(QString fileName, QString mode = "octet", quint16 valueOfBlockSize = 512, quint16 valueOfTimeOut = 2, quint16 maxRetransmit = 5);
+    static QByteArray makeTftpWriteRequest(QString fileName, QString mode = "octet", quint16 valueOfBlockSize = 512, quint16 valueOfTimeOut = 2, quint16 maxRetransmit = 5);
     static QByteArray makeTftpAck(quint16 block);
     static QByteArray makeTftpOAck(std::initializer_list<std::pair<std::string, std::string>> options);
     static QByteArray makeTftpError(quint16 errorCode, QString errorMessage);

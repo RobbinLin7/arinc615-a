@@ -8,7 +8,7 @@ extern unsigned short maxRetransmit_default;
 //unsigned short Tftp::blksize = blksize_default;
 //unsigned short Tftp::timeout = timeout_default;
 
-QByteArray Tftp::makeTftpReadRequest(QString fileName, QString mode, quint16 valueOfBlockSize, quint16 valueOfTimeOut)
+QByteArray Tftp::makeTftpReadRequest(QString fileName, QString mode, quint16 valueOfBlockSize, quint16 valueOfTimeOut, quint16 maxRetransmit)
 {
     QByteArray request;
     //1.opcode
@@ -30,11 +30,16 @@ QByteArray Tftp::makeTftpReadRequest(QString fileName, QString mode, quint16 val
     request.append('\0');
     request.append(QString::number(valueOfTimeOut));
     request.append('\0');
+    //6.max-retransmit
+    request.append("max-retransmit");
+    request.append('\0');
+    request.append(QString::number(maxRetransmit));
+    request.append('\0');
     return request;
 }
 
 
-QByteArray Tftp::makeTftpWriteRequest(QString fileName, QString mode, quint16 valueOfBlockSize, quint16 valueOfTimeOut)
+QByteArray Tftp::makeTftpWriteRequest(QString fileName, QString mode, quint16 valueOfBlockSize, quint16 valueOfTimeOut, quint16 maxRetransmit)
 {
     QByteArray request;
     //1.opcode
@@ -53,7 +58,7 @@ QByteArray Tftp::makeTftpWriteRequest(QString fileName, QString mode, quint16 va
 
     request.append("blksize");
     request.append('\0');
-    request.append(QString::number(valueOfBlockSize).toStdString().c_str());
+    request.append(QString::number(valueOfBlockSize));
     request.append('\0');
 
     //5.timeout 范围为1-65535
@@ -61,6 +66,13 @@ QByteArray Tftp::makeTftpWriteRequest(QString fileName, QString mode, quint16 va
     request.append("timeout");
     request.append('\0');
     request.append(QString::number(valueOfTimeOut));
+    request.append('\0');
+
+    //6.max-retransmit
+
+    request.append("max-retransmit");
+    request.append('\0');
+    request.append(QString::number(maxRetransmit));
     request.append('\0');
 
     return request;
@@ -300,6 +312,7 @@ bool Tftp::handlePut(QUdpSocket *uSock, QString path, QString fileName, QString 
         maxRetransmitFromRequest = 0;
         while(static_cast<char>(writeRequest[index]) != '\0'){
             maxRetransmitFromRequest = maxRetransmitFromRequest * 10 + static_cast<char>(writeRequest[index]) - '0';
+            ++index;
         }
         //TODO
         maxRetransmit = std::min(maxRetransmit, static_cast<unsigned short>(maxRetransmitFromRequest));
