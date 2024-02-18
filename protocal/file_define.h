@@ -64,9 +64,9 @@ typedef struct{
 
 typedef struct Hfile_info{
     unsigned char len_name;//头文件名长度
-    char name[255];//头文件名
+    char name[256];//头文件名
     unsigned char load_part_len_name;//加载部分长度
-    char load_part_name[512];//加载部分文件名
+    char load_part_name[256];//加载部分文件名
 }HFILE_INFO;
 /*------------------INFORMATION------------------*/
 struct File_LCI{

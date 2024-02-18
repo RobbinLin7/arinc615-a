@@ -22,25 +22,30 @@ void UploadThread::run()
                 break;
             }
             emit(uploadStatusMessage(QString("LUI发送完成")));
-            if(waitStatusFileRcved(errorMessage, max_retrans_times * wait_time_ms) == false){
-                status = ERROR;
-                break;
-            }
-            break;
-//        case SEND_LUR_WRQ:
-//            makeLUR();
-//            if(!LUR.exists()){
-//                errorMessage = QString("LUR文件创建失败");
+//            if(waitStatusFileRcved(errorMessage, max_retrans_times * wait_time_ms) == false){
 //                status = ERROR;
 //                break;
 //            }
+            status = SEND_LUR_WRQ;
+            break;
+        case SEND_LUR_WRQ:
+            makeLUR();
+            if(!LUR.exists()){
+                errorMessage = QString("LUR文件创建失败");
+                status = ERROR;
+                break;
+            }
+            if(!Tftp::put(tftpClient, dir.dirName(), QString("%1.LUR").arg(device->getName()), &errorMessage, QHostAddress(device->getHostAddress()), 69)){
+                status = ERROR;
+                break;
+            }
 //            if(!Tftp::sendFile(tftpClient, QString("%1/%2.LUR").arg(dir.dirName(), device->getName()), &errorMessage, &mainThreadExitedOrNot, Tftp::WRQ)){
 //                status = ERROR;
 //                break;
 //            }
-////            emit(uploadStatusMessage("LUR发送完成"));
-//            status = WAIT_LUH_RRQ;
-//            break;
+//            emit(uploadStatusMessage("LUR发送完成"));
+            status = END;
+            break;
 //        case WAIT_LUH_RRQ:
 //            request = tftpRequest->getRequest(&mainThreadExitedOrNot);
 //            if(request.size() == 0){
@@ -109,15 +114,15 @@ void UploadThread::run()
 //                                        .arg(fileList.size())));
 //            QThread::msleep(200);
 //            break;
-//        case ERROR:
-//            emit(uploadStatusMessage(errorMessage));
-//            emit(uploadStatusMessage(QString(tr("上传操作异常结束"))));
-//            emit(uploadResult(false));
-//            emit(uploadRate(0, false));
-//            status = END;
-//            break;
-//        case END:
-//            break;
+        case ERROR:
+            emit(uploadStatusMessage(errorMessage));
+            //emit(uploadStatusMessage(QString(tr("上传操作异常结束"))));
+            emit(uploadResult(false));
+            emit(uploadRate(0, false));
+            status = END;
+            break;
+        case END:
+            break;
         default:
             break;
         }
@@ -129,33 +134,55 @@ void UploadThread::run()
 
 void UploadThread::makeLUR(){
     QFile LUR(QString("%1/%2.LUR").arg(dir.dirName(), device->getName()));
-    LUR.open(QIODevice::WriteOnly);
+    //LUR.open(QIODevice::WriteOnly);
     File_LUR LUR_struct;
     memcpy(LUR_struct.Pro_ver, Protocol_ver, 2);
-    LUR_struct.Header_num = 1;
+    LUR_struct.Header_num = fileList.size();
     LUR_struct.file_len = sizeof(LUR_struct.Pro_ver) + sizeof(LUR_struct.Header_num) + sizeof(LUR_struct.file_len);
-    LUR_struct.Hfile = (HFILE_INFO*) malloc(LUR_struct.Header_num*sizeof (HFILE_INFO));
+    LUR_struct.Hfile = (HFILE_INFO*) malloc(LUR_struct.Header_num * sizeof(HFILE_INFO));
     for(int i = 0; i < LUR_struct.Header_num; i++){
         memset(LUR_struct.Hfile[i].name, 0 ,sizeof (LUR_struct.Hfile[i].name));
-        strcpy(LUR_struct.Hfile[i].name, QString("%1.LUH").arg(device->getName()).toUtf8().data());
+        strcpy(LUR_struct.Hfile[i].name, fileList.at(i).toStdString().c_str());
         LUR_struct.Hfile[i].len_name = strlen(LUR_struct.Hfile[i].name) + 1;
-        LUR_struct.file_len += sizeof(LUR_struct.Hfile[i].len_name) + LUR_struct.Hfile[i].len_name;
+        //LUR_struct.file_len += sizeof(LUR_struct.Hfile[i].len_name) + LUR_struct.Hfile[i].len_name;
         memset(LUR_struct.Hfile[i].load_part_name, 0, sizeof(LUR_struct.Hfile[i].load_part_name));
-        strcpy(LUR_struct.Hfile[i].load_part_name, dir.absolutePath().toUtf8().data());
+        strcpy(LUR_struct.Hfile[i].load_part_name, dir.absolutePath().toStdString().c_str());
         LUR_struct.Hfile[i].load_part_len_name = strlen(LUR_struct.Hfile[i].load_part_name) + 1;
-        LUR_struct.file_len += sizeof(LUR_struct.Hfile[i].load_part_len_name) + LUR_struct.Hfile[i].load_part_len_name;
+        //LUR_struct.file_len += sizeof(LUR_struct.Hfile[i].load_part_len_name) + LUR_struct.Hfile[i].load_part_len_name;
+        LUR_struct.file_len += sizeof(LUR_struct.Hfile[i].load_part_len_name) + sizeof(LUR_struct.Hfile[i].len_name);
+        LUR_struct.file_len += strlen(LUR_struct.Hfile[i].load_part_name) + 1;
+        LUR_struct.file_len += strlen(LUR_struct.Hfile[i].name) + 1;
     }
-    LUR.write((char *)&LUR_struct.file_len, sizeof(LUR_struct.file_len));
-    LUR.write(LUR_struct.Pro_ver, sizeof(LUR_struct.Pro_ver));
-    LUR.write((char *)&LUR_struct.Header_num, sizeof(LUR_struct.Header_num));
-    for(int i = 0; i < LUR_struct.Header_num; i++){
-        LUR.write((char *)&LUR_struct.Hfile[i].len_name, sizeof(LUR_struct.Hfile[i].len_name));
-        LUR.write(LUR_struct.Hfile[i].name, LUR_struct.Hfile[i].len_name);
-        LUR.write((char *)&LUR_struct.Hfile[i].load_part_len_name, sizeof(LUR_struct.Hfile[i].load_part_len_name));
-        LUR.write(LUR_struct.Hfile[i].load_part_name, LUR_struct.Hfile[i].load_part_len_name);
+    if(LUR.open(QIODevice::WriteOnly)){
+        QDataStream os(&LUR);
+#ifdef BIG_ENDIAN
+        os.setByteOrder(QDataStream::BigEndian);
+#else
+        os.setByteOrder(QDataStream::LittleEndian);
+#endif
+        os << LUR_struct.file_len;
+        os.writeRawData(LUR_struct.Pro_ver, sizeof(LUR_struct.Pro_ver));
+        os << LUR_struct.Header_num;
+        for(int i = 0; i < LUR_struct.Header_num; ++i){
+            os << LUR_struct.Hfile[i].len_name;
+            os.writeRawData(LUR_struct.Hfile[i].name, LUR_struct.Hfile[i].len_name);
+            os << LUR_struct.Hfile[i].load_part_len_name;
+            os.writeRawData(LUR_struct.Hfile[i].load_part_name, LUR_struct.Hfile[i].load_part_len_name);
+        }
+        LUR.close();
     }
-    LUR.close();
     free(LUR_struct.Hfile);
+//    LUR.write((char *)&LUR_struct.file_len, sizeof(LUR_struct.file_len));
+//    LUR.write(LUR_struct.Pro_ver, sizeof(LUR_struct.Pro_ver));
+//    LUR.write((char *)&LUR_struct.Header_num, sizeof(LUR_struct.Header_num));
+//    for(int i = 0; i < LUR_struct.Header_num; i++){
+//        LUR.write((char *)&LUR_struct.Hfile[i].len_name, sizeof(LUR_struct.Hfile[i].len_name));
+//        LUR.write(LUR_struct.Hfile[i].name, LUR_struct.Hfile[i].len_name);
+//        LUR.write((char *)&LUR_struct.Hfile[i].load_part_len_name, sizeof(LUR_struct.Hfile[i].load_part_len_name));
+//        LUR.write(LUR_struct.Hfile[i].load_part_name, LUR_struct.Hfile[i].load_part_len_name);
+//    }
+//    LUR.close();
+//    free(LUR_struct.Hfile);
 }
 
 void UploadThread::makeLUH()

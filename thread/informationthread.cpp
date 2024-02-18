@@ -64,7 +64,12 @@ File_LCL* InformationThread::parseLCL(){
     if(LCL.open(QIODevice::ReadOnly)){
         qDebug() << "文件打开成功";
         QDataStream in(&LCL);
+        //in.setByteOrder(QDataStream::BigEndian);
+#ifdef BIG_ENDIAN
         in.setByteOrder(QDataStream::BigEndian);
+#else
+        in.setByteOrder(QDataStream::LittleEndian);
+#endif
         in >> LCL_struct->file_len;
         qDebug() << LCL_struct->file_len << "file_len";
         in.readRawData(LCL_struct->Pro_ver, 2);

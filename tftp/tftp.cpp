@@ -137,8 +137,8 @@ bool Tftp::checkAckNo(const QByteArray& tftpPacket, unsigned short No){
     }
     unsigned short high = static_cast<unsigned char>(tftpPacket[2]);
     unsigned short low = static_cast<unsigned char>(tftpPacket[3]);
-    unsigned short blockNo = (high << 8) + low;
-    return blockNo == No;
+    unsigned short ackNo = (high << 8) + low;
+    return ackNo == No;
 }
 
 QByteArray Tftp::makeTftpOAck(std::initializer_list<std::pair<std::string, std::string> > options)
@@ -163,16 +163,18 @@ bool Tftp::put(QUdpSocket *uSock, QString path, QString fileName, QString *error
 {
     QByteArray wrq = makeTftpWriteRequest(fileName);
     QByteArray oack, ack;
+
     unsigned short retrans_times = 0;
     unsigned short blksize = blksize_default, timeout = timeout_default, maxRetransmit = maxRetransmit_default;
+    oack.resize(blksize + 4);
     do{
         uSock->writeDatagram(wrq, address, port);
-    }while(retrans_times++ < max_retrans_times &&
+    }while(retrans_times++ < maxRetransmit &&
            (!uSock->waitForReadyRead(timeout_default * 1000)||
            uSock->pendingDatagramSize() <= 0 ||
            uSock->readDatagram(oack.data(), uSock->pendingDatagramSize()) <= 0||
            getTftpPacketType(oack) != OACK));
-    if(retrans_times >= max_retrans_times){
+    if(retrans_times >= maxRetransmit){
         *errorMessage = QString("等待OACK报文超时");
         return false;
     }
@@ -424,25 +426,26 @@ bool Tftp::upload(QUdpSocket *uSock, QString path, QString fileName, QString *er
 {
      QByteArray previousPacket;
      QByteArray ack;
+     ack.resize(4);
      char* data = new char[blksize];
      unsigned short retrans_times = 0;
      unsigned short dataLen = 0;
      unsigned short BlockNo = 1;
      QFile file(path + '/' +fileName);
-     if(!file.open(QIODevice::WriteOnly)){
+     if(!file.open(QIODevice::ReadOnly)){
         *errorMessage = QString("文件%1:打开失败").arg(fileName);
         return false;
      }
      do{
          dataLen = file.read(data,blksize);
-         QByteArray dataWaitforTransferPacket = makeTftpData(data, sizeof(data), BlockNo);
+         QByteArray dataWaitforTransferPacket = makeTftpData(data, dataLen, BlockNo);
          uSock->writeDatagram(dataWaitforTransferPacket, host, port);
          previousPacket = dataWaitforTransferPacket;
          while(retrans_times < maxRetransmit &&
                (!uSock->waitForReadyRead(timeout * 1000) ||
                 uSock->pendingDatagramSize() <= 0 ||
                 uSock->readDatagram(ack.data(), uSock->pendingDatagramSize()) <=0 ||
-               !checkBlockNo(ack, BlockNo))){
+               !checkAckNo(ack, BlockNo))){
              uSock->writeDatagram(previousPacket, host, port);
          }
          if(retrans_times >= maxRetransmit){//报错
