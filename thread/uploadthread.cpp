@@ -142,7 +142,7 @@ void UploadThread::makeLUR(){
     LUR_struct.Hfile = (HFILE_INFO*) malloc(LUR_struct.Header_num * sizeof(HFILE_INFO));
     for(int i = 0; i < LUR_struct.Header_num; i++){
         memset(LUR_struct.Hfile[i].name, 0 ,sizeof (LUR_struct.Hfile[i].name));
-        strcpy(LUR_struct.Hfile[i].name, fileList.at(i).toStdString().c_str());
+        strcpy(LUR_struct.Hfile[i].name, fileList.at(i).mid(fileList.at(i).lastIndexOf('/') + 1).toStdString().c_str());
         LUR_struct.Hfile[i].len_name = strlen(LUR_struct.Hfile[i].name) + 1;
         //LUR_struct.file_len += sizeof(LUR_struct.Hfile[i].len_name) + LUR_struct.Hfile[i].len_name;
         memset(LUR_struct.Hfile[i].load_part_name, 0, sizeof(LUR_struct.Hfile[i].load_part_name));
