@@ -1,6 +1,7 @@
 ﻿#include "uploadwidget.h"
 #include "ui_uploadwidget.h"
 #include "ui_fileinfowidget.h"
+#include "progressdialog.h"
 #include <QPushButton>
 #include <QFileDialog>
 #include <QDebug>
@@ -27,6 +28,9 @@ UploadWidget::UploadWidget(QThreadPool *pool, QList<MyThread*>& threads, unsigne
     ui->buttonBox->button(QDialogButtonBox::Cancel)->setText(tr("取消"));
     ui->buttonBox->button(QDialogButtonBox::Ok)->setEnabled(false);
     connect(ui->buttonBox->button(QDialogButtonBox::Ok), &QPushButton::clicked, this, [=](){
+        ProgressDialog* progressDialog = new ProgressDialog(fileSelected);
+        progressDialog->setWindowTitle(QString("上传进度"));
+        progressDialog->show();
         beginUpload();
     });
     connect(ui->buttonBox->button(QDialogButtonBox::Cancel), &QPushButton::clicked, this, [=](){

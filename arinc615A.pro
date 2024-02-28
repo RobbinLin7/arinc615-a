@@ -37,6 +37,8 @@ SOURCES += \
     operationInterface/odownloadwidget.cpp \
     operationInterface/uploadwidget.cpp \
     paraconfigdialog.cpp \
+    progressdialog.cpp \
+    progresswidget.cpp \
     protocal/protocalfile.cpp \
     protocal/utility.cpp \
     successdialog.cpp \
@@ -70,6 +72,8 @@ HEADERS += \
     operationInterface/odownloadwidget.h \
     operationInterface/uploadwidget.h \
     paraconfigdialog.h \
+    progressdialog.h \
+    progresswidget.h \
     protocal/arinc615_global_var_define.h \
     protocal/arinc615_struct_define.h \
     protocal/file_define.h \
@@ -103,6 +107,8 @@ FORMS += \
     operationInterface/odownloadwidget.ui \
     operationInterface/uploadwidget.ui \
     paraconfigdialog.ui \
+    progressdialog.ui \
+    progresswidget.ui \
     successdialog.ui
 
 # Default rules for deployment.

@@ -1,0 +1,37 @@
+#include "progresswidget.h"
+#include "ui_progresswidget.h"
+
+ProgressWidget::ProgressWidget(QString fileName, QWidget *parent) :
+    QWidget(parent),
+    ui(new Ui::ProgressWidget)
+{
+    ui->setupUi(this);
+    ui->fileNameLabel->setText(fileName);
+    ui->progressBar->setValue(0);
+    ui->statusLabel->setText("上传未开始");
+}
+
+void ProgressWidget::setStatusLabel(QString status)
+{
+    ui->statusLabel->setText(status);
+}
+
+ProgressWidget::~ProgressWidget()
+{
+    delete ui;
+}
+
+void ProgressWidget::updateProgressBar(int rate)
+{
+    ui->progressBar->setValue(rate);
+    if(rate > 0){
+        if(rate == 100){
+            ui->statusLabel->setText(QString("上传完成"));
+        }
+        else if(rate > 0 && ui->progressBar->value() == 0){
+            ui->statusLabel->setText(QString("上传中"));
+        }
+    }
+
+}
+

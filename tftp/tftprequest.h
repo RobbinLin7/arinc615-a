@@ -16,7 +16,8 @@ public:
         mutex.unlock();
     }
     QByteArray getRequest(){
-        QByteArray request;
+        request.clear();
+        mutex.tryLock(wait_time_ms);
         return request;
     }
     QByteArray getRequest(bool* mainThreadExitOrNot){
@@ -40,17 +41,17 @@ public:
         return tRequest;
     }
     quint16 getPort(){
-        QMutexLocker locker(&mutex);
+        //QMutexLocker locker(&mutex);
         return port;
     }
     void setRequestAndPort(QByteArray request, quint16 port){
+        //QMutexLocker locker(&mutex);
         this->request = request;
         this->port = port;
-        //if()
         mutex.tryLock();
         mutex.unlock();
+        //qDebug() << "set request finished";
     }
-
     void lockMutex(){
         //mutex.lock();
         mutex.tryLock();

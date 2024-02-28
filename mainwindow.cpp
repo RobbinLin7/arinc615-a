@@ -789,6 +789,7 @@ void MainWindow::tftpServerTftpReadReady()
                     StatusFileRcvThread::StatusFileType fileType;
                     if(fileName.endsWith(".LUS")) {
                         fileType = StatusFileRcvThread::LUS;
+                        qDebug() << fileName << "--LUS--";
                     }
                     else{
                         fileType = StatusFileRcvThread::LNS;
