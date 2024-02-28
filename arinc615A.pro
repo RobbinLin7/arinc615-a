@@ -80,6 +80,22 @@ HEADERS += \
     protocal/findRequest.h \
     protocal/protocalfile.h \
     protocal/utility.h \
+    spdlog/async.h \
+    spdlog/async_logger-inl.h \
+    spdlog/async_logger.h \
+    spdlog/common-inl.h \
+    spdlog/common.h \
+    spdlog/formatter.h \
+    spdlog/fwd.h \
+    spdlog/logger-inl.h \
+    spdlog/logger.h \
+    spdlog/pattern_formatter-inl.h \
+    spdlog/pattern_formatter.h \
+    spdlog/spdlog-inl.h \
+    spdlog/spdlog.h \
+    spdlog/stopwatch.h \
+    spdlog/tweakme.h \
+    spdlog/version.h \
     successdialog.h \
     tftp/tftp.h \
     tftp/tftprequest.h \

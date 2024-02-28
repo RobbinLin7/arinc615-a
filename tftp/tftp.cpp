@@ -280,6 +280,7 @@ bool Tftp::get(QUdpSocket *uSock, QString path, QString fileName, QString *error
 
 bool Tftp::handlePut(QUdpSocket *uSock, QString path, QString fileName, QString *errorMessage, const QHostAddress &host, const quint16 port, QByteArray writeRequest)
 {
+    qDebug() << "port = " << port << "in handlePut";
     //1.consulting stage
     unsigned short blksize = blksize_default, timeout = timeout_default,maxRetransmit = maxRetransmit_default;
     unsigned short blkSizeFromRequest = -1, timeoutFromRequest = -1, maxRetransmitFromRequest = -1;
@@ -384,6 +385,7 @@ bool Tftp::handleGet(QUdpSocket *uSock, QString path, QString fileName, QString 
 
 bool Tftp::download(QUdpSocket *uSock, QString path, QString fileName, QString *errorMessage, const QHostAddress &host, const quint16 port, unsigned short blksize, unsigned short timeout, unsigned short maxRetransmit, QByteArray& previousPacket)
 {
+    qDebug() << "port = " << port;
     QFile file(path + "/" + fileName);
     if(file.open(QIODevice::WriteOnly) == false){
         *errorMessage = QString("文件打开失败%1").arg(fileName);
@@ -409,23 +411,31 @@ bool Tftp::download(QUdpSocket *uSock, QString path, QString fileName, QString *
 //    uSock->writeDatagram(ack, host, port);
 //    previousPacket = ack;
     do{
-        while(transTimes++ < maxRetransmit &&
+        qDebug() << "--1--";
+        qDebug() << "host = " << host << "port = " << port;
+        while(transTimes++ < maxRetransmit + 1 &&
               (!uSock->waitForReadyRead(timeout * 1000) ||
-               uSock->pendingDatagramSize() <= 0 ||
+               (dataLen = uSock->pendingDatagramSize()) <= 0 ||
                uSock->readDatagram(dataPacket.data(), uSock->pendingDatagramSize()) <= 0 ||
                !checkBlockNo(dataPacket, expectedBlockNo))){
             uSock->writeDatagram(previousPacket, host, port);
+            qDebug() << "hello world";
         }
-        if(transTimes >= maxRetransmit){
+        qDebug() << "--2--";
+        qDebug() << "transTimes = " << transTimes << "maxRetransmit = " << maxRetransmit;
+        if(transTimes >= maxRetransmit + 1){
             *errorMessage = QString("等待DATA报文超时");
             return false;
         }
-        file.write(dataPacket.mid(4));
+        qDebug() << "before file write";
+        file.write(dataPacket.mid(4), dataLen - 4);
+        qDebug() << "dataLen = " << dataLen << "blksize = " << blksize << "dataPacket size = " << dataPacket.size();
         QByteArray ack = makeTftpAck(expectedBlockNo++);
         uSock->writeDatagram(ack, host, port);
         previousPacket = ack;
     }while(dataLen == blksize);
     file.close();
+    qDebug() << "download" << fileName << "finish";
     return true;
 }
 

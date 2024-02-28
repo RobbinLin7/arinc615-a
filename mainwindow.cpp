@@ -1,16 +1,43 @@
-﻿#include "mainwindow.h"
+﻿#define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_TRACE//必须定义这个宏,才能输出文件名和行号
+#include "mainwindow.h"
 #include "ui_mainwindow.h"
 #include "ui_configwidget.h"
 #include "mainwindow.h"
+#include "spdlog/spdlog.h"
+
 #include <QDebug>
 #include <QDateTime>
 #include <QMessageBox>
+
+#include "spdlog/spdlog.h"
+#include "spdlog/sinks/basic_file_sink.h"
+#include "spdlog/logger.h"
+
+#include "spdlog/sinks/stdout_sinks.h"
+#include "spdlog/sinks/stdout_color_sinks.h"
+#include "spdlog/common.h"
+#include "spdlog/sinks/rotating_file_sink.h"
+
 using namespace GlobalDefine;
+using namespace spdlog;
+
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
 {
+
+    auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
+    console_sink->set_level(spdlog::level::warn);
+    console_sink->set_pattern("[multi_sink_example][%^%l%$] %v");
+
+    auto file_sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>("logs/multisink.txt", true);
+    file_sink->set_level(spdlog::level::trace);
+
+    spdlog::logger logger("multi_sink", {console_sink, file_sink});
+    logger.set_level(spdlog::level::debug);
+    logger.warn("this should appear in both console and file");
+    logger.info("this message should not appear in the console, only in the file");
     ui->setupUi(this);
     //设置线程池大小
     pool.setMaxThreadCount(maxThreadCount);
@@ -826,9 +853,12 @@ void MainWindow::tftpServerTftpReadReady()
                     statusFileRcvThread->setAutoDelete(true);
                 }
                 else{
-                    qDebug() << "fileName:" << fileName;
+                    //qDebug() << "fileName:" << fileName;
                     tftpRequest = threads.at(i)->getTftpRequest();
-                    tftpRequest->setRequestAndPort(datagram, port);    
+                    tftpRequest->setRequestAndPort(datagram, port);
+                    qDebug() << "port = " << port << "1";
+                    tftpRequest->mutex.tryLock();
+                    tftpRequest->mutex.unlock();
                 }
                 break;
             }

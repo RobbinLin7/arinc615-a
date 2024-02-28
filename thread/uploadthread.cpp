@@ -48,14 +48,21 @@ void UploadThread::run()
             status = WAIT_FILE_RRQ;
             break;
         case WAIT_FILE_RRQ:
-            request = tftpRequest->getRequest();
-            if(request.size() == 0){
+            if(tftpRequest->mutex.tryLock(13 * 1000) == false){
                 status = ERROR;
-                errorMessage = QString("等待上传文件超时");
+                errorMessage = QString("等待数据文件读请求超时");
                 break;
             }
+            request = tftpRequest->getRequest();
             port = tftpRequest->getPort();
+            tftpRequest->mutex.unlock();
+//            if(request.size() == 0){
+//                status = ERROR;
+//                errorMessage = QString("等待数据文件读请求超时");
+//                break;
+//            }
             fileName = request.mid(2).split('\0').at(0);
+            qDebug() << "fileName = " << fileName;
             for(int i = 0; i < fileList.size(); ++i){
                 if(fileList.at(i).contains(fileName)){
                     if(Tftp::handleGet(uSock.get(), fileList.at(i).left(fileList.at(i).lastIndexOf('/')), fileName, &errorMessage, QHostAddress(device->getHostAddress()), port, request) == false){
@@ -334,44 +341,44 @@ File_LUS* UploadThread::parseLUS(QByteArray data)
 }
 void UploadThread::rcvStatusCodeAndMessageSlot(quint16 statusCode, QString statusMessage, bool error, QString errorMessage)
 {
-    qDebug() << "rcvStatusCodeAndMessageSlot thread id" << QThread::currentThreadId();
-    conditionMutex.lock();
-    this->statusMessage = statusMessage;
-    this->statusCode = statusCode;
-    emit(uploadStatusMessage(statusMessage));
-    if(error == true){
-        status = ERROR;
-        this->errorMessage = errorMessage;
-    }
-    else{
-        switch (this->statusCode) {
-        case 0x0001:
-            status = SEND_LUR_WRQ;
-            break;
-        case 0x0002:
-            status = WAIT_FILE_RRQ;
-            break;
-        case 0x0003:
-            emit(uploadStatusMessage(QString("设备%1上传完成").arg(device->getName())));
-            emit(uploadResult(true));
-            status = END;
-            break;
-        case 0x1003:
-            status = ERROR;
-            break;
-        case 0x1004:
-            status = ERROR;
-            break;
-        case 0x1005:
-            status = ERROR;
-            break;
-        default:
-            status = ERROR;
-            errorMessage = QString(tr("未定义状态码错误"));
-            break;
-        }
-    }
-    statusFileRcved = true;
-    statusFileRcvedConditon.wakeOne();
-    conditionMutex.unlock();
+//    qDebug() << "rcvStatusCodeAndMessageSlot thread id" << QThread::currentThreadId();
+//    conditionMutex.lock();
+//    this->statusMessage = statusMessage;
+//    this->statusCode = statusCode;
+//    emit(uploadStatusMessage(statusMessage));
+//    if(error == true){
+//        status = ERROR;
+//        this->errorMessage = errorMessage;
+//    }
+//    else{
+//        switch (this->statusCode) {
+//        case 0x0001:
+//            status = SEND_LUR_WRQ;
+//            break;
+//        case 0x0002:
+//            status = WAIT_FILE_RRQ;
+//            break;
+//        case 0x0003:
+//            emit(uploadStatusMessage(QString("设备%1上传完成").arg(device->getName())));
+//            emit(uploadResult(true));
+//            status = END;
+//            break;
+//        case 0x1003:
+//            status = ERROR;
+//            break;
+//        case 0x1004:
+//            status = ERROR;
+//            break;
+//        case 0x1005:
+//            status = ERROR;
+//            break;
+//        default:
+//            status = ERROR;
+//            errorMessage = QString(tr("未定义状态码错误"));
+//            break;
+//        }
+//    }
+//    statusFileRcved = true;
+//    statusFileRcvedConditon.wakeOne();
+//    conditionMutex.unlock();
 }

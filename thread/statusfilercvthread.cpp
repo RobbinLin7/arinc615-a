@@ -13,7 +13,8 @@ void StatusFileRcvThread::run()
 //    this->tftpServer = new QUdpSocket();
 //    this->tftpClient->connectToHost(device->getHostAddress(), 69);
     std::shared_ptr<QUdpSocket> uSock = std::make_shared<QUdpSocket>();
-    QByteArray request = tftpRequest->getRequest(&mainThreadExitedOrNot);
+
+    QByteArray request = tftpRequest->getRequest();
     quint16 port = tftpRequest->getPort();
     QString fileName = request.mid(2).split('\0').at(0);
     QString statusMessage;
@@ -21,7 +22,8 @@ void StatusFileRcvThread::run()
     unsigned short totalFileNum;
     //tftpServer->disconnectFromHost();
     //tftpServer->connectToHost(device->getHostAddress(), port);
-    tftpRequest->getRequest();
+    //tftpRequest->getRequest();
+    qDebug() << "start to handlePut status file";
     if(!Tftp::handlePut(uSock.get(), dir.dirName(), fileName, &errorMessage, QHostAddress(device->getHostAddress()), port, request)){
         error = true;
     }
