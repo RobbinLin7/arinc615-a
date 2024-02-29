@@ -55,7 +55,7 @@ void UploadThread::run()
             }
             request = tftpRequest->getRequest();
             port = tftpRequest->getPort();
-            tftpRequest->mutex.unlock();
+//            tftpRequest->mutex.unlock();
 //            if(request.size() == 0){
 //                status = ERROR;
 //                errorMessage = QString("等待数据文件读请求超时");
