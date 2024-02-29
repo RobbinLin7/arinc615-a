@@ -362,6 +362,9 @@ File_LUS* UploadThread::parseLUS(QFile* fLUS)
         in >> LUS->hfiles[i].load_stat;
         in >> LUS->hfiles[i].load_stat_des_len;
         in.readRawData(LUS->hfiles[i].load_stat_des, LUS->hfiles[i].load_stat_des_len);
+
+        qDebug() << LUS->hfiles[i].Hfile_name_len << LUS->hfiles[i].Hfile_name << LUS->hfiles[i].load_part_num_name_len << LUS->hfiles[i].load_part_num_name
+                 << LUS->hfiles[i].load_ratio << LUS->hfiles[i].load_stat << LUS->hfiles[i].load_stat_des_len << LUS->hfiles[i].load_stat_des;
     }
 
 //    LUS->file_len = data[0] + ((uint32)data[1] << 8) + ((uint32)data[2] << 16) + ((uint32)data[3] << 24);

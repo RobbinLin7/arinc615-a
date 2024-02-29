@@ -394,7 +394,7 @@ bool Tftp::download(QUdpSocket *uSock, QString path, QString fileName, QString *
     //QByteArray previousPacekt = ;
     QByteArray dataPacket;
     dataPacket.resize(blksize + 4);
-    unsigned short transTimes = 0;
+    unsigned short transTimes = 1;
     unsigned short dataLen = 0;
     unsigned short expectedBlockNo = 1;
 //
@@ -413,6 +413,7 @@ bool Tftp::download(QUdpSocket *uSock, QString path, QString fileName, QString *
     do{
         qDebug() << "--1--";
         qDebug() << "host = " << host << "port = " << port;
+        transTimes = 1;
         while(transTimes++ < maxRetransmit + 1 &&
               (!uSock->waitForReadyRead(timeout * 1000) ||
                (dataLen = uSock->pendingDatagramSize()) <= 0 ||
@@ -433,7 +434,7 @@ bool Tftp::download(QUdpSocket *uSock, QString path, QString fileName, QString *
         QByteArray ack = makeTftpAck(expectedBlockNo++);
         uSock->writeDatagram(ack, host, port);
         previousPacket = ack;
-    }while(dataLen == blksize);
+    }while(dataLen - 4 == blksize);
     file.close();
     qDebug() << "download" << fileName << "finish";
     return true;
