@@ -3,41 +3,22 @@
 #include "ui_mainwindow.h"
 #include "ui_configwidget.h"
 #include "mainwindow.h"
-#include "spdlog/spdlog.h"
+#include "Log.h"
 
 #include <QDebug>
 #include <QDateTime>
 #include <QMessageBox>
 
-#include "spdlog/spdlog.h"
-#include "spdlog/sinks/basic_file_sink.h"
-#include "spdlog/logger.h"
 
-#include "spdlog/sinks/stdout_sinks.h"
-#include "spdlog/sinks/stdout_color_sinks.h"
-#include "spdlog/common.h"
-#include "spdlog/sinks/rotating_file_sink.h"
 
 using namespace GlobalDefine;
-using namespace spdlog;
+
 
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
-{
-
-    auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
-    console_sink->set_level(spdlog::level::warn);
-    console_sink->set_pattern("[multi_sink_example][%^%l%$] %v");
-
-    auto file_sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>("logs/multisink.txt", true);
-    file_sink->set_level(spdlog::level::trace);
-
-    spdlog::logger logger("multi_sink", {console_sink, file_sink});
-    logger.set_level(spdlog::level::debug);
-    logger.warn("this should appear in both console and file");
-    logger.info("this message should not appear in the console, only in the file");
+{   
     ui->setupUi(this);
     //设置线程池大小
     pool.setMaxThreadCount(maxThreadCount);
@@ -73,7 +54,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     connect(ui->actionAbortOp, SIGNAL(triggered()), this, SLOT(execAbortOperation()));
     connect(ui->informationPushBtn, SIGNAL(clicked()), this, SLOT(execInformationOperation()));
-    connect(ui->actionAutoConfigOp, SIGNAL(triggered()), this, SLOT(execAutoConfigOperation()));
+//    connect(ui->actionAutoConfigOp, SIGNAL(triggered()), this, SLOT(execAutoConfigOperation()));
     //触发退出按钮
     connect(ui->actionExit, SIGNAL(triggered()), this, SLOT(execExitTool()));
 
@@ -81,11 +62,10 @@ MainWindow::MainWindow(QWidget *parent)
     connect(ui->selectALLOrNotCheckBox, SIGNAL(clicked(bool)), this, SLOT(selectAllDeviceOrNot(bool)));
 
     //触发自动配置按钮
-    connect(ui->autoConfigBtn, SIGNAL(clicked()), this, SLOT(execAutoConfigOperation()));
+    //connect(ui->autoConfigBtn, SIGNAL(clicked()), this, SLOT(execAutoConfigOperation()));
 
     connect(ui->actionToolVersion, &QAction::triggered, this, [=](){
-        QMessageBox::about(this,"About ARINC615ATool","ARINC615ATool V1.0.22(2023-12-15) \n新增特性\n"
-                                                      "1.修改端口占用在windows7导致程序崩溃异常结束的bug\n"
+        QMessageBox::about(this,"About ARINC615ATool","ARINC615ATool V1.1.1(2024-3-xx) \n新增特性\n"
                                                        );
     });
 
@@ -104,6 +84,7 @@ MainWindow::~MainWindow()
     delete checkedDevices;
     delete ui;
 }
+
 
 //==================================================================
 //function name: initMainWindow
@@ -469,10 +450,12 @@ void MainWindow::clearDeviceList()
 //return:
 //log:8-1新增
 //==================================================================
+extern Log logger;
 void MainWindow::addLogToDockWidget(const int &operationCode, const QString log, const QString deviceName)
 {
+    logger.logger->debug(log.toStdString());
     QString currentTime;
-    currentTime= QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss");
+    currentTime = QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss");
     QString info;
     switch(operationCode)
     {
@@ -747,12 +730,12 @@ void MainWindow::EnableOrdisableExceptFind(bool flag){
     ui->actionUploadOp->setEnabled(flag);
     ui->actionMediaDownloadOp->setEnabled(flag);
     ui->actionOperatorDownloadOp->setEnabled(flag);
-    ui->actionAutoConfigOp->setEnabled(flag);
+    //ui->actionAutoConfigOp->setEnabled(flag);
     ui->uploadPushButton->setEnabled(flag);
     ui->mediaDownloadPushBtn->setEnabled(flag);
     ui->operatorDownloadPushBtn->setEnabled(flag);
     ui->informationPushBtn->setEnabled(flag);
-    ui->autoConfigBtn->setEnabled(flag);
+    //ui->autoConfigBtn->setEnabled(flag);
 }
 
 void MainWindow::on_radio_toggled(bool checked, const Device* device){
@@ -777,24 +760,6 @@ void MainWindow::checkIfAnyDeviceSelect(){
     else EnableOrdisableExceptFind(false);
 }
 
-void MainWindow::execAutoConfigOperation()
-{
-    mAutoConfigWidget = std::make_shared<AutoConfigWidget>(&pool, threads, threadsCnt, checkedDevices, &mDevicesList, this);
-    connect(mAutoConfigWidget.get(), &AutoConfigWidget::sendAutoConfigStatusMessage, this, [=](QString msg, QString deviceName){
-        this->addLogToDockWidget(AUTO_CONFIG_OP_CODE, msg, deviceName);
-    });
-    addLogToDockWidget(AUTO_CONFIG_OP_CODE, QString(tr("开始自动化配置操作")));
-    focusOnCurrentOperation();
-    if(operationWidget){
-        operationWidget->hide();
-        layout->replaceWidget(operationWidget.get(), mAutoConfigWidget.get());
-    }
-    connect(mAutoConfigWidget.get(), &AutoConfigWidget::AutoConfigFinish, this, [=](){
-        operationWidget->setEnabled(false);
-        unfocusOnCurrentOperation();
-    });
-    operationWidget = mAutoConfigWidget;
-}
 
 void MainWindow::tftpServerTftpReadReady()
 {
@@ -826,10 +791,11 @@ void MainWindow::tftpServerTftpReadReady()
                     UploadThread* uploadThread = dynamic_cast<UploadThread*>(threads.at(i));
                     MDownloadThread* mDownloadThread = dynamic_cast<MDownloadThread*>(threads.at(i));
                     ODownloadThread* oDownloadThread = dynamic_cast<ODownloadThread*>(threads.at(i));
-                    AutoConfigThread* autoConfigThread = dynamic_cast<AutoConfigThread*>(threads.at(i));
+                    //AutoConfigThread* autoConfigThread = dynamic_cast<AutoConfigThread*>(threads.at(i));
                     if(uploadThread){
-                        connect((StatusFileRcvThread*)statusFileRcvThread, &StatusFileRcvThread::sendLUSInfSignal, uploadThread,
-                                &UploadThread::rcvStatusCodeAndMessageSlot);
+//                        connect((StatusFileRcvThread*)statusFileRcvThread, &StatusFileRcvThread::sendLUSInfSignal, uploadThread,
+//                                &UploadThread::rcvStatusCodeAndMessageSlot);
+                        connect((StatusFileRcvThread*)statusFileRcvThread, &StatusFileRcvThread::sendLUSInfSignal, mUploadWidget.get(), &UploadWidget::on_LUS_received);
                     }
                     else if(oDownloadThread){
                         connect((StatusFileRcvThread*)statusFileRcvThread, &StatusFileRcvThread::sendLNSInfSignal, oDownloadThread,
@@ -838,16 +804,6 @@ void MainWindow::tftpServerTftpReadReady()
                     else if(mDownloadThread){
                         connect((StatusFileRcvThread*)statusFileRcvThread, &StatusFileRcvThread::sendLNSInfSignal, mDownloadThread,
                                 &MDownloadThread::rcvStatusCodeAndMessageSlot);
-                    }
-                    else if(autoConfigThread){
-                        if(fileType == StatusFileRcvThread::LUS){
-                            connect((StatusFileRcvThread*)statusFileRcvThread, &StatusFileRcvThread::sendLUSInfSignal, autoConfigThread,
-                                    &AutoConfigThread::rcvLUSInfSlot);
-                        }
-                        else if(fileType == StatusFileRcvThread::LNS){
-                            connect((StatusFileRcvThread*)statusFileRcvThread, &StatusFileRcvThread::sendLNSInfSignal, autoConfigThread,
-                                    &AutoConfigThread::rcvLNSInfSlot);
-                        }
                     }
                     pool.start(statusFileRcvThread);
                     statusFileRcvThread->setAutoDelete(true);

@@ -20,10 +20,8 @@ DEFINES += QT_DEPRECATED_WARNINGS
 
 SOURCES += \
     LEDLight/ledlight.cpp \
-    autoconfigprogressdialog.cpp \
     crc/crc.cpp \
     dir.cpp \
-    operationInterface/autoconfigwidget.cpp \
     deviceInfoWidget/deviceinfowidget.cpp \
     fileinfowidget.cpp \
     finddialog.cpp \
@@ -43,7 +41,6 @@ SOURCES += \
     protocal/utility.cpp \
     successdialog.cpp \
     tftp/tftp.cpp \
-    thread/autoconfigthread.cpp \
     thread/informationthread.cpp \
     thread/mdownloadthread.cpp \
     thread/mythread.cpp \
@@ -54,10 +51,9 @@ SOURCES += \
     topology/createtopologyxml.cpp
 HEADERS += \
     LEDLight/ledlight.h \
-    autoconfigprogressdialog.h \
+    Log.h \
     crc/crc.h \
     dir.h \
-    operationInterface/autoconfigwidget.h \
     device.h \
     deviceInfoWidget/deviceinfowidget.h \
     fileinfowidget.h \
@@ -99,7 +95,6 @@ HEADERS += \
     successdialog.h \
     tftp/tftp.h \
     tftp/tftprequest.h \
-    thread/autoconfigthread.h \
     thread/informationthread.h \
     thread/mdownloadthread.h \
     thread/mythread.h \
@@ -109,8 +104,6 @@ HEADERS += \
     thread/waitthread.h \
     topology/createtopologyxml.h
 FORMS += \
-    autoconfigprogressdialog.ui \
-    operationInterface/autoconfigwidget.ui \
     deviceInfoWidget/deviceinfowidget.ui \
     fileinfowidget.ui \
     finddialog.ui \

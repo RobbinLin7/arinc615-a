@@ -21,3 +21,20 @@ ProgressDialog::~ProgressDialog()
 {
     delete ui;
 }
+
+void ProgressDialog::setProgress(Hfile_info_LUS *hfiles, int num)
+{
+    for(int i = 0; i < num; ++i){
+        int progress = 0;
+        for(int j = 0; j < 3; ++j){
+            progress = progress * 10 + hfiles[i].load_ratio[j] - '0';
+        }
+        for(int j = 0; j < ui->listWidget->count(); ++j){
+            ProgressWidget* progressWidget = (ProgressWidget*)ui->listWidget->itemWidget(ui->listWidget->itemAt(0, j));
+            if(progressWidget->getFileName().toStdString() == std::string(hfiles[i].Hfile_name)){
+                progressWidget->updateProgressBar(progress);
+                break;
+            }
+        }
+    }
+}

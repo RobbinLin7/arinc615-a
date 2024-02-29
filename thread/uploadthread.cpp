@@ -328,15 +328,50 @@ void UploadThread::makeLUH()
 }
 
 
-File_LUS* UploadThread::parseLUS(QByteArray data)
+File_LUS* UploadThread::parseLUS(QFile* fLUS)
 {
+    if(fLUS->open(QIODevice::ReadOnly) == false){
+        return nullptr;
+    }
     File_LUS *LUS = (File_LUS*)malloc(sizeof(File_LUS));
-    LUS->file_len = data[0] + ((uint32)data[1] << 8) + ((uint32)data[2] << 16) + ((uint32)data[3] << 24);
-    LUS->Pro_ver = data[4] + ((uint16)data[5] << 8);
-    LUS->op_stat_code = data[6] + ((uint16)data[7] << 8);
-    LUS->stat_des_len = data[8];
-    strcpy(LUS->stat_des, QString::fromStdString(data.mid(9, LUS->stat_des_len).toStdString()).toUtf8().data());
-    qDebug() << LUS->stat_des;
+    memset(LUS, 0, sizeof(File_LUS));
+    QDataStream in(fLUS);
+#ifdef BIG_ENDIAN
+        in.setByteOrder(QDataStream::BigEndian);
+#else
+        in.setByteOrder(QDataStream::LittleEndian);
+#endif
+
+    in >> LUS->file_len;
+    in >> LUS->Pro_ver;
+    in >> LUS->op_stat_code;
+    in >> LUS->stat_des_len;
+    in.readRawData(LUS->stat_des, LUS->stat_des_len);
+    in >> LUS->counter;
+    in >> LUS->excep_timer;
+    in >> LUS->estim_timer;
+    in.readRawData(LUS->load_list_ratio, 3);
+    in >> LUS->hfile_num;
+    if(LUS->hfile_num > 0) LUS->hfiles = (struct Hfile_info_LUS*)malloc(sizeof(Hfile_info_LUS) * LUS->hfile_num);
+    for(int i = 0; i < LUS->hfile_num; ++i){
+        in >> LUS->hfiles[i].Hfile_name_len;
+        in.readRawData(LUS->hfiles[i].Hfile_name, LUS->hfiles[i].Hfile_name_len);
+        in >> LUS->hfiles[i].load_part_num_name_len;
+        in.readRawData(LUS->hfiles[i].load_part_num_name, LUS->hfiles[i].load_part_num_name_len);
+        in.readRawData(LUS->hfiles[i].load_ratio, 3);
+        in >> LUS->hfiles[i].load_stat;
+        in >> LUS->hfiles[i].load_stat_des_len;
+        in.readRawData(LUS->hfiles[i].load_stat_des, LUS->hfiles[i].load_stat_des_len);
+    }
+
+//    LUS->file_len = data[0] + ((uint32)data[1] << 8) + ((uint32)data[2] << 16) + ((uint32)data[3] << 24);
+//    LUS->Pro_ver = data[4] + ((uint16)data[5] << 8);
+//    LUS->op_stat_code = data[6] + ((uint16)data[7] << 8);
+//    LUS->stat_des_len = data[8];
+//    strcpy(LUS->stat_des, QString::fromStdString(data.mid(9, LUS->stat_des_len).toStdString()).toUtf8().data());
+//    memcpy(LUS->load_list_ratio, data.data() + 9 + LUS->stat_des_len + 6, 3);
+    qDebug() << LUS->stat_des << LUS->load_list_ratio;
+    fLUS->close();
     return LUS;
 }
 void UploadThread::rcvStatusCodeAndMessageSlot(quint16 statusCode, QString statusMessage, bool error, QString errorMessage)

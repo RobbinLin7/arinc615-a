@@ -3,7 +3,8 @@
 
 ProgressWidget::ProgressWidget(QString fileName, QWidget *parent) :
     QWidget(parent),
-    ui(new Ui::ProgressWidget)
+    ui(new Ui::ProgressWidget),
+    fileName(fileName)
 {
     ui->setupUi(this);
     ui->fileNameLabel->setText(fileName);
@@ -19,6 +20,11 @@ void ProgressWidget::setStatusLabel(QString status)
 ProgressWidget::~ProgressWidget()
 {
     delete ui;
+}
+
+const QString &ProgressWidget::getFileName() const
+{
+    return fileName;
 }
 
 void ProgressWidget::updateProgressBar(int rate)

@@ -11,6 +11,7 @@
 #include "../fileinfowidget.h"
 #include "../thread/mythread.h"
 #include "../deviceInfoWidget/deviceinfowidget.h"
+#include "progressdialog.h"
 #include "dir.h"
 class UploadWidget;
 #include "mainwindow.h"
@@ -45,11 +46,14 @@ private:
     QVector<DeviceInfoWidget *> *deviceList;
     unsigned int finishedThreadCnt = 0;
     QList<QListWidgetItem*> widgetItemList;
+    ProgressDialog* progressDialog;
 private slots:
     void radioChecked(bool checked, QString fileName);
     void on_pushButton_clicked();
     void on_pushButton_2_clicked();
     void on_checkBox_toggled(bool checked);
+public slots:
+    void on_LUS_received(File_LUS* LUS);
 signals:
     void beginUploadBtnClicked(QStringList pathList);
     void uploadStatusMsg(QString message, QString fileName);

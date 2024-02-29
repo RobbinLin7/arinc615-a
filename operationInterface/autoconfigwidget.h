@@ -3,19 +3,18 @@
 
 #include <QWidget>
 #include "device.h"
-#include "ui_autoconfigwidget.h"
+//#include "ui_autoconfigwidget.h"
 #include "thread/mythread.h"
 #include "thread/uploadthread.h"
 #include "thread/mdownloadthread.h"
-#include "thread/autoconfigthread.h"
 #include "deviceInfoWidget/deviceinfowidget.h"
-#include "autoconfigprogressdialog.h"
+//#include "autoconfigprogressdialog.h"
 #include <QMap>
 #include <QString>
 #include <QStringList>
 #include <QThreadPool>
 #include <QMessageBox>
-class AutoConfigWidget;
+//class AutoConfigWidget;
 #include "mainwindow.h"
 
 namespace Ui {

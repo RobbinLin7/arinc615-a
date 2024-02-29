@@ -31,38 +31,32 @@ void StatusFileRcvThread::run()
 //        error = true;
 //    }
     statusFile = new QFile(QString("%1/%2").arg(dir.dirName(), fileName));
-    if(!statusFile->open(QIODevice::ReadOnly)){
-        errorMessage = QString("文件%1打开失败").arg(fileName);
-        error = true;
+    void* dataFileStruct = nullptr;
+    dataFileStruct = (statusFileType == LUS) ? (void*)UploadThread::parseLUS(statusFile) : (void*)ODownloadThread::parseLNS(statusFile);
+    //File_LUS *LUS_struct = UploadThread::parseLUS(data);
+    if(statusFileType == LUS){
+        statusMessage = QString("设备%1状态信息:%2").arg(device->getName(),
+                                                   QString(((File_LUS*) dataFileStruct)->stat_des));
+        statusCode = ((File_LUS*) dataFileStruct)->op_stat_code;
     }
     else{
-        QByteArray data = statusFile->readAll();
-        void* dataFileStruct = nullptr;
-        dataFileStruct = (statusFileType == LUS) ? (void*)UploadThread::parseLUS(data) : (void*)ODownloadThread::parseLNS(data);
-        //File_LUS *LUS_struct = UploadThread::parseLUS(data);
-        if(statusFileType == LUS){
-            statusMessage = QString("设备%1状态信息:%2").arg(device->getName(),
-                                                       QString(((File_LUS*) dataFileStruct)->stat_des));
-            statusCode = ((File_LUS*) dataFileStruct)->op_stat_code;
-        }
-        else{
-            statusMessage = QString("设备%1状态信息:%2").arg(device->getName(),
-                                                       QString(((File_LNS*) dataFileStruct)->stat_des));
-            statusCode = ((File_LNS*) dataFileStruct)->op_stat_code;
+        statusMessage = QString("设备%1状态信息:%2").arg(device->getName(),
+                                                   QString(((File_LNS*) dataFileStruct)->stat_des));
+        statusCode = ((File_LNS*) dataFileStruct)->op_stat_code;
 
-            totalFileNum = ((File_LNS*) dataFileStruct)->file_num;
-        }
-        statusFile->close();
-        free(dataFileStruct);
-        dataFileStruct = nullptr;
+        totalFileNum = ((File_LNS*) dataFileStruct)->file_num;
     }
+    //free(dataFileStruct);
+    //dataFileStruct = nullptr;
     if(statusFileType == LUS){
-        emit(sendLUSInfSignal(statusCode, statusMessage, error, errorMessage));
+        emit(sendLUSInfSignal((File_LUS*)dataFileStruct));
     }
     else{
         emit(sendLNSInfSignal(statusCode, totalFileNum, statusMessage, error, errorMessage));
     }
 }
+
+
 
 void StatusFileRcvThread::handleLNS()
 {

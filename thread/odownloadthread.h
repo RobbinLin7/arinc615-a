@@ -17,7 +17,7 @@ public:
         status = SEND_LNO_RRQ;
     }
     void run() override;
-    static File_LNS* parseLNS(const QByteArray data);
+    static File_LNS* parseLNS(QFile* fLNS);
     File_LNL* parseLNL(const QByteArray data);
     void makeLNA();
     ~ODownloadThread(){

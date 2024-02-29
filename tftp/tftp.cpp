@@ -470,7 +470,7 @@ bool Tftp::upload(QUdpSocket *uSock, QString path, QString fileName, QString *er
              return false;
          }
          ++blockNo;
-         qDebug() << "dataLen = " << dataLen << "blksize = " << blksize;
+         //qDebug() << "dataLen = " << dataLen << "blksize = " << blksize;
      }while(dataLen == blksize);
      file.close();
      delete[] data;

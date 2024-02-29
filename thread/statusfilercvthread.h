@@ -28,7 +28,7 @@ private:
     void handleLUS();
 signals:
     void sendLNSInfSignal(quint16, quint16, QString, bool, QString);
-    void sendLUSInfSignal(quint16, QString, bool, QString);
+    void sendLUSInfSignal(File_LUS*);
     //void sendStatusCodeAndMessageSignal(quint16, QString, bool, QString);
 };
 

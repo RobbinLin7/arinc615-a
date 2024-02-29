@@ -28,7 +28,7 @@ UploadWidget::UploadWidget(QThreadPool *pool, QList<MyThread*>& threads, unsigne
     ui->buttonBox->button(QDialogButtonBox::Cancel)->setText(tr("取消"));
     ui->buttonBox->button(QDialogButtonBox::Ok)->setEnabled(false);
     connect(ui->buttonBox->button(QDialogButtonBox::Ok), &QPushButton::clicked, this, [=](){
-        ProgressDialog* progressDialog = new ProgressDialog(fileSelected);
+        progressDialog = new ProgressDialog(fileSelected);
         progressDialog->setWindowTitle(QString("上传进度"));
         progressDialog->show();
         beginUpload();
@@ -82,7 +82,7 @@ bool UploadWidget::beginUpload()
             QString name = device->getName();
             deviceList->at(i)->setProgress(0);
             //void (DeviceInfoWidget::*setProgress1)(const int&) = &DeviceInfoWidget::setProgress;
-            connect((UploadThread*)thread, &UploadThread::uploadRate, deviceList->at(i), (newSetProgressType)&DeviceInfoWidget::setProgress);
+            //connect((UploadThread*)thread, &UploadThread::uploadRate, deviceList->at(i), (newSetProgressType)&DeviceInfoWidget::setProgress);
             connect((UploadThread*)thread, &UploadThread::uploadStatusMessage, this, [=](QString message){
                 emit(uploadStatusMsg(message, deviceList->at(i)->getDevice()->getName() + ':' +
                                      deviceList->at(i)->getDeviceIP()));
@@ -157,5 +157,18 @@ void UploadWidget::on_checkBox_toggled(bool checked)
         FileInfoWidget* widget = (FileInfoWidget*)ui->listWidget->itemWidget(ui->listWidget->item(i));
         widget->setSelectRadio(checked);
     }
+}
+
+void UploadWidget::on_LUS_received(File_LUS *LUS)
+{
+    int progress = 0;
+    for(int i = 0; i < 3; i++){
+        progress = progress * 10 + LUS->load_list_ratio[i] - '0';
+    }
+    deviceList->at(0)->setProgress(progress);
+    if(LUS->hfile_num > 0){
+        progressDialog->setProgress(LUS->hfiles, LUS->hfile_num);
+    }
+    free(LUS);
 }
 

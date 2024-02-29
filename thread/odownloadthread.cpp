@@ -150,52 +150,52 @@ void ODownloadThread::run()
 //    }
 }
 
-File_LNS *ODownloadThread::parseLNS(const QByteArray data)
+File_LNS *ODownloadThread::parseLNS(QFile* fLNS)
 {
-    File_LNS *LNS = (File_LNS*)malloc(sizeof(File_LNS));
-    //LNS->file_len = data[0] + ((quint32)data[1] << 8) + ((uint32)data[2] << 16) + ((uint32)data[3] << 24);
-    memcpy(&LNS->file_len, data.mid(0, 4).data(), sizeof(LNS->file_len));
-    //LNS->Pro_ver = data[4] + ((quint16)data[5] << 8);
-    memcpy(&LNS->Pro_ver, data.mid(4, 2).data(), sizeof(LNS->Pro_ver));
-    //LNS->op_stat_code = data[6] + ((quint16)data[7] << 8);
-    memcpy(&LNS->op_stat_code, data.mid(6, 2).data(), sizeof(LNS->op_stat_code));
-    //LNS->stat_des_len = data[8];
-    memcpy(&LNS->stat_des_len, data.mid(8, 1).data(), sizeof(unsigned char));
-    strcpy(LNS->stat_des, QString::fromStdString(data.mid(9, LNS->stat_des_len).toStdString()).toUtf8().data());
-    size_t pos = 9 + sizeof(LNS->stat_des);
-    //LNS->counter = ((quint16)data[pos] << 8) + data[pos + 1];
-    memcpy(&LNS->counter, data.mid(pos, 2).data(), sizeof(LNS->counter));
-    pos += 2;
-    //LNS->excep_timer = ((quint16)data[pos] << 8) + data[pos + 1];
-    memcpy(&LNS->excep_timer, data.mid(pos, 2).data(), sizeof(LNS->excep_timer));
-    pos += 2;
-    //LNS->estim_timer = ((quint16)data[pos] << 8) + data[pos + 1];
-    memcpy(&LNS->estim_timer, data.mid(pos, 2).data(), sizeof(LNS->estim_timer));
-    pos += 2;
-    memcpy(LNS->down_list_ratio, data.mid(pos, 3).data(), 3);
-    pos += 3;
-    //LNS->file_num = (quint16)data[pos] + ((quint16)data[pos + 1] << 8);
-    memcpy(&LNS->file_num, data.mid(pos, 2).data(), sizeof(LNS->file_num));
-    pos += 2;
-    LNS->LNS_files = (file_info_LNS *)malloc(sizeof(file_info_LNS) * LNS->file_num);
-    for(int i = 0; i < LNS->file_num; i++){
-        //LNS->LNS_files[i].file_name_len = (unsigned char)data[pos++];
-        memcpy(&LNS->LNS_files[i].file_name_len, data.mid(pos, 1).data(), sizeof(unsigned char));
-        pos++;
-        strcpy(LNS->LNS_files[i].file_name, data.mid(pos, LNS->LNS_files[i].file_name_len).data());
-        //pos += sizeof(LNS->LNS_files[i].file_name);
-        pos += 255;
-        //LNS->LNS_files[i].file_stat = ((quint16)data[pos] << 8) + data[pos + 1];
-        memcpy(&LNS->LNS_files[i].file_stat, data.mid(pos, 2).data(), sizeof(LNS->LNS_files[i].file_stat));
-        pos += 2;
-        //LNS->LNS_files[i].file_stat_des_len = (unsigned char)data[pos++];
-        memcpy(&LNS->LNS_files[i].file_stat_des_len, data.mid(pos, 1).data(), sizeof(unsigned char));
-        pos++;
-        strcpy(LNS->LNS_files[i].file_stat_des, data.mid(pos, LNS->LNS_files[i].file_stat_des_len).data());
-        //pos += sizeof(LNS->LNS_files[i].file_stat_des);
-        pos += 255;
-    }
-    return LNS;
+//    File_LNS *LNS = (File_LNS*)malloc(sizeof(File_LNS));
+//    //LNS->file_len = data[0] + ((quint32)data[1] << 8) + ((uint32)data[2] << 16) + ((uint32)data[3] << 24);
+//    memcpy(&LNS->file_len, data.mid(0, 4).data(), sizeof(LNS->file_len));
+//    //LNS->Pro_ver = data[4] + ((quint16)data[5] << 8);
+//    memcpy(&LNS->Pro_ver, data.mid(4, 2).data(), sizeof(LNS->Pro_ver));
+//    //LNS->op_stat_code = data[6] + ((quint16)data[7] << 8);
+//    memcpy(&LNS->op_stat_code, data.mid(6, 2).data(), sizeof(LNS->op_stat_code));
+//    //LNS->stat_des_len = data[8];
+//    memcpy(&LNS->stat_des_len, data.mid(8, 1).data(), sizeof(unsigned char));
+//    strcpy(LNS->stat_des, QString::fromStdString(data.mid(9, LNS->stat_des_len).toStdString()).toUtf8().data());
+//    size_t pos = 9 + sizeof(LNS->stat_des);
+//    //LNS->counter = ((quint16)data[pos] << 8) + data[pos + 1];
+//    memcpy(&LNS->counter, data.mid(pos, 2).data(), sizeof(LNS->counter));
+//    pos += 2;
+//    //LNS->excep_timer = ((quint16)data[pos] << 8) + data[pos + 1];
+//    memcpy(&LNS->excep_timer, data.mid(pos, 2).data(), sizeof(LNS->excep_timer));
+//    pos += 2;
+//    //LNS->estim_timer = ((quint16)data[pos] << 8) + data[pos + 1];
+//    memcpy(&LNS->estim_timer, data.mid(pos, 2).data(), sizeof(LNS->estim_timer));
+//    pos += 2;
+//    memcpy(LNS->down_list_ratio, data.mid(pos, 3).data(), 3);
+//    pos += 3;
+//    //LNS->file_num = (quint16)data[pos] + ((quint16)data[pos + 1] << 8);
+//    memcpy(&LNS->file_num, data.mid(pos, 2).data(), sizeof(LNS->file_num));
+//    pos += 2;
+//    LNS->LNS_files = (file_info_LNS *)malloc(sizeof(file_info_LNS) * LNS->file_num);
+//    for(int i = 0; i < LNS->file_num; i++){
+//        //LNS->LNS_files[i].file_name_len = (unsigned char)data[pos++];
+//        memcpy(&LNS->LNS_files[i].file_name_len, data.mid(pos, 1).data(), sizeof(unsigned char));
+//        pos++;
+//        strcpy(LNS->LNS_files[i].file_name, data.mid(pos, LNS->LNS_files[i].file_name_len).data());
+//        //pos += sizeof(LNS->LNS_files[i].file_name);
+//        pos += 255;
+//        //LNS->LNS_files[i].file_stat = ((quint16)data[pos] << 8) + data[pos + 1];
+//        memcpy(&LNS->LNS_files[i].file_stat, data.mid(pos, 2).data(), sizeof(LNS->LNS_files[i].file_stat));
+//        pos += 2;
+//        //LNS->LNS_files[i].file_stat_des_len = (unsigned char)data[pos++];
+//        memcpy(&LNS->LNS_files[i].file_stat_des_len, data.mid(pos, 1).data(), sizeof(unsigned char));
+//        pos++;
+//        strcpy(LNS->LNS_files[i].file_stat_des, data.mid(pos, LNS->LNS_files[i].file_stat_des_len).data());
+//        //pos += sizeof(LNS->LNS_files[i].file_stat_des);
+//        pos += 255;
+//    }
+//    return LNS;
 }
 
 File_LNL *ODownloadThread::parseLNL(const QByteArray data)
