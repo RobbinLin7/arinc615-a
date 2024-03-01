@@ -425,7 +425,7 @@ bool Tftp::upload(QUdpSocket *uSock, QString path, QString fileName, QString *er
      QByteArray ack;
      ack.resize(4);
      char* data = new char[blksize];
-     unsigned short retrans_times = 0;
+     unsigned short trans_times = 0;
      unsigned short dataLen = 0;
      unsigned short blockNo = 1;
      QFile file(path + '/' +fileName);
@@ -437,18 +437,38 @@ bool Tftp::upload(QUdpSocket *uSock, QString path, QString fileName, QString *er
          dataLen = file.read(data, blksize);
          QByteArray dataWaitforTransferPacket = makeTftpData(data, dataLen, blockNo);
          uSock->writeDatagram(dataWaitforTransferPacket, host, port);
+         trans_times = 1;
          previousPacket = dataWaitforTransferPacket;
-         while(retrans_times < maxRetransmit &&
-               (!uSock->waitForReadyRead(timeout * 1000) ||
-                uSock->pendingDatagramSize() <= 0 ||
-                uSock->readDatagram(ack.data(), uSock->pendingDatagramSize()) <=0 ||
-               !checkAckNo(ack, blockNo))){
+         while(1){
+             while(!uSock->waitForReadyRead(timeout * 1000) && trans_times < maxRetransmit + 1){
+                 uSock->writeDatagram(previousPacket, host, port);
+                 ++trans_times;
+             }
+             if(uSock->pendingDatagramSize() <= 0 && trans_times >= maxRetransmit + 1){
+                 *errorMessage = QString("等待ACK报文超时");
+                 return false;
+             }
+             while(uSock->pendingDatagramSize() > 0){
+                 uSock->readDatagram(ack.data(), uSock->pendingDatagramSize());
+             }
+             if(checkAckNo(ack, blockNo)) break;
              uSock->writeDatagram(previousPacket, host, port);
+             ++trans_times;
          }
-         if(retrans_times >= maxRetransmit){//报错
-             *errorMessage = QString("等待ACK报文超时");
-             return false;
-         }
+
+//         while(
+//               (!uSock->waitForReadyRead(timeout * 1000) ||
+//                uSock->pendingDatagramSize() <= 0 ||
+//                uSock->readDatagram(ack.data(), uSock->pendingDatagramSize()) <=0 ||
+//               !checkAckNo(ack, blockNo))
+//               && trans_times < maxRetransmit + 1){
+//             uSock->writeDatagram(previousPacket, host, port);
+//             trans_times++;
+//         }
+//         if(trans_times >= maxRetransmit + 1){//报错
+//             *errorMessage = QString("等待ACK报文超时");
+//             return false;
+//         }
          ++blockNo;
          //qDebug() << "dataLen = " << dataLen << "blksize = " << blksize;
      }while(dataLen == blksize);

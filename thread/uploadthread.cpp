@@ -177,6 +177,8 @@ void UploadThread::makeLUR(){
     LUR_struct.file_len = sizeof(LUR_struct.Pro_ver) + sizeof(LUR_struct.Header_num) + sizeof(LUR_struct.file_len);
     LUR_struct.Hfile = (HFILE_INFO*) malloc(LUR_struct.Header_num * sizeof(HFILE_INFO));
     for(int i = 0; i < LUR_struct.Header_num; i++){
+        QFileInfo fileInfo(fileList.at(i));
+        LUR_struct.Hfile[i].fileLen = fileInfo.size();
         memset(LUR_struct.Hfile[i].name, 0 ,sizeof (LUR_struct.Hfile[i].name));
         strcpy(LUR_struct.Hfile[i].name, fileList.at(i).mid(fileList.at(i).lastIndexOf('/') + 1).toStdString().c_str());
         LUR_struct.Hfile[i].len_name = strlen(LUR_struct.Hfile[i].name);
@@ -200,6 +202,7 @@ void UploadThread::makeLUR(){
         os.writeRawData(LUR_struct.Pro_ver, sizeof(LUR_struct.Pro_ver));
         os << LUR_struct.Header_num;
         for(int i = 0; i < LUR_struct.Header_num; ++i){
+            os << LUR_struct.Hfile[i].fileLen;
             os << LUR_struct.Hfile[i].len_name;
             os.writeRawData(LUR_struct.Hfile[i].name, LUR_struct.Hfile[i].len_name + 1);
             os << LUR_struct.Hfile[i].load_part_len_name;
@@ -354,6 +357,7 @@ File_LUS* UploadThread::parseLUS(QFile* fLUS)
     in >> LUS->hfile_num;
     if(LUS->hfile_num > 0) LUS->hfiles = (struct Hfile_info_LUS*)malloc(sizeof(Hfile_info_LUS) * LUS->hfile_num);
     for(int i = 0; i < LUS->hfile_num; ++i){
+        in >> LUS->hfiles[i].fileLen;
         in >> LUS->hfiles[i].Hfile_name_len;
         in.readRawData(LUS->hfiles[i].Hfile_name, LUS->hfiles[i].Hfile_name_len + 1);
         in >> LUS->hfiles[i].load_part_num_name_len;

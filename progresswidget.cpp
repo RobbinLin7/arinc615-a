@@ -28,18 +28,29 @@ const QString &ProgressWidget::getFileName() const
     return fileName;
 }
 
+void ProgressWidget::updateStatus(const unsigned short statusCode)
+{
+    switch (statusCode) {
+    case 0x0001:
+        ui->statusLabel->setText("传输未开始");
+        break;
+    case 0x0002:
+        ui->statusLabel->setText("传输中");
+        break;
+    case 0x0003:
+        ui->statusLabel->setText("传输完成");
+        break;
+    case 0x1007:
+        ui->statusLabel->setText("传输异常结束");
+        break;
+    default:
+        break;
+    }
+}
+
 void ProgressWidget::updateProgressBar(int rate)
 {
-    qDebug() << fileName << " " << rate;
+    //qDebug() << fileName << " " << rate;
     ui->progressBar->setValue(rate);
-    if(rate > 0){
-        if(rate == 100){
-            ui->statusLabel->setText(QString("上传完成"));
-        }
-        else if(rate > 0 && ui->progressBar->value() == 0){
-            ui->statusLabel->setText(QString("上传中"));
-        }
-    }
-
 }
 

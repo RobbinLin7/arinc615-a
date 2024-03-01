@@ -17,6 +17,7 @@ public:
     ~ProgressWidget();
 
     const QString &getFileName() const;
+    void updateStatus(const unsigned short);
 
 private:
     Ui::ProgressWidget *ui;

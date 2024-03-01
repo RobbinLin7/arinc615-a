@@ -42,6 +42,7 @@ void ProgressDialog::setProgress(Hfile_info_LUS *hfiles, int num)
             qDebug() << hfiles[i].Hfile_name << progressWidget->getFileName();
             if(progressWidget->getFileName().toStdString() == std::string(hfiles[i].Hfile_name)){
                 progressWidget->updateProgressBar(progress);
+                progressWidget->updateStatus(hfiles[i].load_stat);
                 break;
             }
         }

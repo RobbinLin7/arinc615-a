@@ -63,6 +63,7 @@ typedef struct{
 
 
 typedef struct Hfile_info{
+    uint64 fileLen;  //头文件大小
     unsigned char len_name;//头文件名长度
     char name[256];//头文件名
     unsigned char load_part_len_name;//加载部分长度
@@ -100,6 +101,7 @@ struct File_LCS{
 
 
 typedef struct Hfile_info_LUS{
+    uint64 fileLen;
     unsigned char Hfile_name_len;//头文件名长度
     char Hfile_name[255];//头文件名
     unsigned char load_part_num_name_len;//加载部分名字长度
