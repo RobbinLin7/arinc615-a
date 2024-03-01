@@ -46,7 +46,7 @@ private:
     QVector<DeviceInfoWidget *> *deviceList;
     unsigned int finishedThreadCnt = 0;
     QList<QListWidgetItem*> widgetItemList;
-    ProgressDialog* progressDialog;
+    std::shared_ptr<ProgressDialog> progressDialog;
 private slots:
     void radioChecked(bool checked, QString fileName);
     void on_pushButton_clicked();

@@ -179,11 +179,11 @@ void UploadThread::makeLUR(){
     for(int i = 0; i < LUR_struct.Header_num; i++){
         memset(LUR_struct.Hfile[i].name, 0 ,sizeof (LUR_struct.Hfile[i].name));
         strcpy(LUR_struct.Hfile[i].name, fileList.at(i).mid(fileList.at(i).lastIndexOf('/') + 1).toStdString().c_str());
-        LUR_struct.Hfile[i].len_name = strlen(LUR_struct.Hfile[i].name) + 1;
+        LUR_struct.Hfile[i].len_name = strlen(LUR_struct.Hfile[i].name);
         //LUR_struct.file_len += sizeof(LUR_struct.Hfile[i].len_name) + LUR_struct.Hfile[i].len_name;
         memset(LUR_struct.Hfile[i].load_part_name, 0, sizeof(LUR_struct.Hfile[i].load_part_name));
         strcpy(LUR_struct.Hfile[i].load_part_name, dir.absolutePath().toStdString().c_str());
-        LUR_struct.Hfile[i].load_part_len_name = strlen(LUR_struct.Hfile[i].load_part_name) + 1;
+        LUR_struct.Hfile[i].load_part_len_name = strlen(LUR_struct.Hfile[i].load_part_name);
         //LUR_struct.file_len += sizeof(LUR_struct.Hfile[i].load_part_len_name) + LUR_struct.Hfile[i].load_part_len_name;
         LUR_struct.file_len += sizeof(LUR_struct.Hfile[i].load_part_len_name) + sizeof(LUR_struct.Hfile[i].len_name);
         LUR_struct.file_len += strlen(LUR_struct.Hfile[i].load_part_name) + 1;
@@ -201,9 +201,9 @@ void UploadThread::makeLUR(){
         os << LUR_struct.Header_num;
         for(int i = 0; i < LUR_struct.Header_num; ++i){
             os << LUR_struct.Hfile[i].len_name;
-            os.writeRawData(LUR_struct.Hfile[i].name, LUR_struct.Hfile[i].len_name);
+            os.writeRawData(LUR_struct.Hfile[i].name, LUR_struct.Hfile[i].len_name + 1);
             os << LUR_struct.Hfile[i].load_part_len_name;
-            os.writeRawData(LUR_struct.Hfile[i].load_part_name, LUR_struct.Hfile[i].load_part_len_name);
+            os.writeRawData(LUR_struct.Hfile[i].load_part_name, LUR_struct.Hfile[i].load_part_len_name + 1);
         }
         LUR.close();
     }
@@ -355,13 +355,13 @@ File_LUS* UploadThread::parseLUS(QFile* fLUS)
     if(LUS->hfile_num > 0) LUS->hfiles = (struct Hfile_info_LUS*)malloc(sizeof(Hfile_info_LUS) * LUS->hfile_num);
     for(int i = 0; i < LUS->hfile_num; ++i){
         in >> LUS->hfiles[i].Hfile_name_len;
-        in.readRawData(LUS->hfiles[i].Hfile_name, LUS->hfiles[i].Hfile_name_len);
+        in.readRawData(LUS->hfiles[i].Hfile_name, LUS->hfiles[i].Hfile_name_len + 1);
         in >> LUS->hfiles[i].load_part_num_name_len;
-        in.readRawData(LUS->hfiles[i].load_part_num_name, LUS->hfiles[i].load_part_num_name_len);
+        in.readRawData(LUS->hfiles[i].load_part_num_name, LUS->hfiles[i].load_part_num_name_len + 1);
         in.readRawData(LUS->hfiles[i].load_ratio, 3);
         in >> LUS->hfiles[i].load_stat;
         in >> LUS->hfiles[i].load_stat_des_len;
-        in.readRawData(LUS->hfiles[i].load_stat_des, LUS->hfiles[i].load_stat_des_len);
+        in.readRawData(LUS->hfiles[i].load_stat_des, LUS->hfiles[i].load_stat_des_len + 1);
 
         qDebug() << LUS->hfiles[i].Hfile_name_len << LUS->hfiles[i].Hfile_name << LUS->hfiles[i].load_part_num_name_len << LUS->hfiles[i].load_part_num_name
                  << LUS->hfiles[i].load_ratio << LUS->hfiles[i].load_stat << LUS->hfiles[i].load_stat_des_len << LUS->hfiles[i].load_stat_des;

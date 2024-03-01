@@ -28,7 +28,7 @@ UploadWidget::UploadWidget(QThreadPool *pool, QList<MyThread*>& threads, unsigne
     ui->buttonBox->button(QDialogButtonBox::Cancel)->setText(tr("取消"));
     ui->buttonBox->button(QDialogButtonBox::Ok)->setEnabled(false);
     connect(ui->buttonBox->button(QDialogButtonBox::Ok), &QPushButton::clicked, this, [=](){
-        progressDialog = new ProgressDialog(fileSelected);
+        progressDialog = std::make_shared<ProgressDialog>(fileSelected);
         progressDialog->setWindowTitle(QString("上传进度"));
         progressDialog->show();
         beginUpload();

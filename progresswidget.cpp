@@ -1,5 +1,6 @@
 #include "progresswidget.h"
 #include "ui_progresswidget.h"
+#include <QDebug>
 
 ProgressWidget::ProgressWidget(QString fileName, QWidget *parent) :
     QWidget(parent),
@@ -29,6 +30,7 @@ const QString &ProgressWidget::getFileName() const
 
 void ProgressWidget::updateProgressBar(int rate)
 {
+    qDebug() << fileName << " " << rate;
     ui->progressBar->setValue(rate);
     if(rate > 0){
         if(rate == 100){
