@@ -4,6 +4,7 @@
 #ifdef Q_OS_WIN32
 #include <windows.h>
 #endif
+#include "Log.h"
 char dir[256];
 size_t max_retrans_times = 5;
 size_t wait_time_ms = 2000;
@@ -11,6 +12,8 @@ size_t max_find_response_time_ms = 1000;
 size_t state_file_send_interval = 10000;
 unsigned short blksize_default = 512;
 unsigned short timeout_default = 2;
+unsigned short maxRetransmit_default = 5;
+Log logger("./log/a.txt");
 
 bool checkOnly(HANDLE* m_hMutex)
 {
@@ -30,10 +33,10 @@ bool checkOnly(HANDLE* m_hMutex)
 #endif
 }
 
-
 int main(int argc, char *argv[])
 {
     memset(dir, 0, sizeof(dir));
+    //initSpdlog();
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 6, 0))
     QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
 #endif
@@ -53,3 +56,4 @@ int main(int argc, char *argv[])
     CloseHandle(m_hMutex);
     return res;
 }
+

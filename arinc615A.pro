@@ -11,6 +11,7 @@ RC_ICONS = main.ico
 # depend on your compiler). Please consult the documentation of the
 # deprecated API in order to know how to port your code away from it.
 DEFINES += QT_DEPRECATED_WARNINGS
+#DEFINES += BIG_ENDIAN
 
 # You can also make your code fail to compile if it uses deprecated APIs.
 # In order to do so, uncomment the following line.
@@ -19,10 +20,8 @@ DEFINES += QT_DEPRECATED_WARNINGS
 
 SOURCES += \
     LEDLight/ledlight.cpp \
-    autoconfigprogressdialog.cpp \
     crc/crc.cpp \
     dir.cpp \
-    operationInterface/autoconfigwidget.cpp \
     deviceInfoWidget/deviceinfowidget.cpp \
     fileinfowidget.cpp \
     finddialog.cpp \
@@ -36,11 +35,12 @@ SOURCES += \
     operationInterface/odownloadwidget.cpp \
     operationInterface/uploadwidget.cpp \
     paraconfigdialog.cpp \
+    progressdialog.cpp \
+    progresswidget.cpp \
     protocal/protocalfile.cpp \
     protocal/utility.cpp \
     successdialog.cpp \
     tftp/tftp.cpp \
-    thread/autoconfigthread.cpp \
     thread/informationthread.cpp \
     thread/mdownloadthread.cpp \
     thread/mythread.cpp \
@@ -51,10 +51,9 @@ SOURCES += \
     topology/createtopologyxml.cpp
 HEADERS += \
     LEDLight/ledlight.h \
-    autoconfigprogressdialog.h \
+    Log.h \
     crc/crc.h \
     dir.h \
-    operationInterface/autoconfigwidget.h \
     device.h \
     deviceInfoWidget/deviceinfowidget.h \
     fileinfowidget.h \
@@ -69,16 +68,33 @@ HEADERS += \
     operationInterface/odownloadwidget.h \
     operationInterface/uploadwidget.h \
     paraconfigdialog.h \
+    progressdialog.h \
+    progresswidget.h \
     protocal/arinc615_global_var_define.h \
     protocal/arinc615_struct_define.h \
     protocal/file_define.h \
     protocal/findRequest.h \
     protocal/protocalfile.h \
     protocal/utility.h \
+    spdlog/async.h \
+    spdlog/async_logger-inl.h \
+    spdlog/async_logger.h \
+    spdlog/common-inl.h \
+    spdlog/common.h \
+    spdlog/formatter.h \
+    spdlog/fwd.h \
+    spdlog/logger-inl.h \
+    spdlog/logger.h \
+    spdlog/pattern_formatter-inl.h \
+    spdlog/pattern_formatter.h \
+    spdlog/spdlog-inl.h \
+    spdlog/spdlog.h \
+    spdlog/stopwatch.h \
+    spdlog/tweakme.h \
+    spdlog/version.h \
     successdialog.h \
     tftp/tftp.h \
     tftp/tftprequest.h \
-    thread/autoconfigthread.h \
     thread/informationthread.h \
     thread/mdownloadthread.h \
     thread/mythread.h \
@@ -88,8 +104,6 @@ HEADERS += \
     thread/waitthread.h \
     topology/createtopologyxml.h
 FORMS += \
-    autoconfigprogressdialog.ui \
-    operationInterface/autoconfigwidget.ui \
     deviceInfoWidget/deviceinfowidget.ui \
     fileinfowidget.ui \
     finddialog.ui \
@@ -102,6 +116,8 @@ FORMS += \
     operationInterface/odownloadwidget.ui \
     operationInterface/uploadwidget.ui \
     paraconfigdialog.ui \
+    progressdialog.ui \
+    progresswidget.ui \
     successdialog.ui
 
 # Default rules for deployment.

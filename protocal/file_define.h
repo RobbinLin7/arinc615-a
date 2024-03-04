@@ -63,10 +63,11 @@ typedef struct{
 
 
 typedef struct Hfile_info{
+    uint64 fileLen;  //头文件大小
     unsigned char len_name;//头文件名长度
-    char name[255];//头文件名
+    char name[256];//头文件名
     unsigned char load_part_len_name;//加载部分长度
-    char load_part_name[512];//加载部分文件名
+    char load_part_name[256];//加载部分文件名
 }HFILE_INFO;
 /*------------------INFORMATION------------------*/
 struct File_LCI{
@@ -100,11 +101,12 @@ struct File_LCS{
 
 
 typedef struct Hfile_info_LUS{
+    uint64 fileLen;
     unsigned char Hfile_name_len;//头文件名长度
     char Hfile_name[255];//头文件名
     unsigned char load_part_num_name_len;//加载部分名字长度
     char load_part_num_name[255];//加载部分名字
-    char load_ritio[3];//加载率
+    char load_ratio[3];//加载率
     uint16 load_stat;//加载状态
     unsigned char load_stat_des_len;//加载状态描述长度
     char load_stat_des[255];//加载状态描述
@@ -130,13 +132,13 @@ struct File_LUS{
     uint16 Pro_ver;//协议版本号
     uint16 op_stat_code;//操作状态吗
     unsigned char stat_des_len;//状态描述长度
-    char stat_des[255];//状态描述
+    char stat_des[256];//状态描述
     uint16 counter;//计数器
     uint16 excep_timer;//
     uint16 estim_timer;//估计时长
     char load_list_ratio[3];//列表加载比率
     uint16 hfile_num;//头文件数量
-    struct Hfile_info_LUS *LUS_files;//头文件列表
+    struct Hfile_info_LUS *hfiles;//头文件列表
 };
 
 typedef struct TargetIDs{

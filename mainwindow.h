@@ -34,6 +34,7 @@
 #include "thread/statusfilercvthread.h"
 #include "protocal/findRequest.h"
 #include "thread/waitthread.h"
+
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
 QT_END_NAMESPACE
@@ -45,7 +46,6 @@ class MainWindow : public QMainWindow
 public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
-
     void initMainWindow();
     void getAllEntry();
     void EnableOrdisableExceptFind(bool flag);
@@ -81,7 +81,7 @@ private slots:
 
     void on_radio_toggled(bool checked, const Device* device);
 
-    void execAutoConfigOperation();
+    //void execAutoConfigOperation();
 
     void tftpServerTftpReadReady();
 
@@ -128,7 +128,7 @@ private:
 
     std::shared_ptr<ODownloadWidget> mODownloadWidget;      //用户定义下载操作widget
 
-    std::shared_ptr<AutoConfigWidget> mAutoConfigWidget;    //自动配置widget
+    //std::shared_ptr<AutoConfigWidget> mAutoConfigWidget;    //自动配置widget
 
     std::shared_ptr<QVBoxLayout> layout;                                   //ui->operationWidget的layout
 

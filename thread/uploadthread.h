@@ -20,7 +20,7 @@ public:
     void run() override;
     void makeLUR();
     void makeLUH();
-    static File_LUS* parseLUS(QByteArray);
+    static File_LUS* parseLUS(QFile*);
     enum status_set{SEND_LUI_RRQ, SEND_LUR_WRQ, WAIT_LUH_RRQ, WAIT_FILE_RRQ, END, ERROR} status;
 signals:
     void uploadResult(bool);
