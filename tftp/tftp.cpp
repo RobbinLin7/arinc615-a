@@ -348,6 +348,7 @@ bool Tftp::handleGet(QUdpSocket *uSock, QString path, QString fileName, QString 
         maxRetransmitFromRequest = 0;
         while(static_cast<char>(readRequest[index]) != '\0'){
             maxRetransmitFromRequest = maxRetransmitFromRequest * 10 + static_cast<char>(readRequest[index]) - '0';
+            ++index;
         }
         //TODO
         maxRetransmit = std::min(maxRetransmit, static_cast<unsigned short>(maxRetransmitFromRequest));
