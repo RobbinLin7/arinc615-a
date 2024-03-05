@@ -5,8 +5,11 @@
 
 
 void InformationThread::run(){
-    this->tftpClient = new QUdpSocket();
-    this->tftpServer = new QUdpSocket();
+    protocalFileSocket = std::make_shared<QUdpSocket>();
+    if(protocalFileSocket->bind(PROTOCAL_FILE_PORT) == false){
+        qDebug() << QString("端口号%1被占用").arg(PROTOCAL_FILE_PORT);
+        return;
+    }
     QString errorMessage;
     QByteArray request;
     quint16 port;
@@ -14,7 +17,7 @@ void InformationThread::run(){
     while(status != END){
         switch (status) {
         case SEND_LCI_RRQ:
-            if(!Tftp::get(tftpClient, dir.dirName(), QString("%1.LCI").arg(device->getName()), &errorMessage, QHostAddress(device->getHostAddress()), 69)){
+            if(!Tftp::get(protocalFileSocket.get(), dir.dirName(), QString("%1.LCI").arg(device->getName()), &errorMessage, QHostAddress(device->getHostAddress()), TFTP_SERVER_PORT)){
                 status = ERROR;
                 break;
             }
@@ -39,7 +42,7 @@ void InformationThread::run(){
 
             fileName = request.mid(2).split('\0').at(0);
             if(fileName.split('.').size() == 2 && fileName.split('.').at(1) == "LCL"){
-                if(!Tftp::handlePut(tftpServer, dir.dirName(), fileName, &errorMessage, QHostAddress(device->getHostAddress()), port, request)){
+                if(!Tftp::handlePut(protocalFileSocket.get(), dir.dirName(), fileName, &errorMessage, QHostAddress(device->getHostAddress()), port, request)){
                     status = ERROR;
                     break;
                 }
@@ -64,6 +67,7 @@ void InformationThread::run(){
             break;
         }
     }
+    protocalFileSocket->close();
 }
 
 File_LCL* InformationThread::parseLCL(){

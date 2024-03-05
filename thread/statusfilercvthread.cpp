@@ -12,8 +12,12 @@ void StatusFileRcvThread::run()
 //    this->tftpClient = new QUdpSocket();
 //    this->tftpServer = new QUdpSocket();
 //    this->tftpClient->connectToHost(device->getHostAddress(), 69);
-    std::shared_ptr<QUdpSocket> uSock = std::make_shared<QUdpSocket>();
-
+    //std::shared_ptr<QUdpSocket> uSock = std::make_shared<QUdpSocket>();
+    statusFileSocket = std::make_shared<QUdpSocket>();
+    if(statusFileSocket->bind(STATUS_FILE_PORT) == false){
+        qDebug() << QString("端口号%1被占用").arg(STATUS_FILE_PORT);
+        return;
+    }
     QByteArray request = tftpRequest->getRequest();
     quint16 port = tftpRequest->getPort();
     QString fileName = request.mid(2).split('\0').at(0);
@@ -24,7 +28,7 @@ void StatusFileRcvThread::run()
     //tftpServer->connectToHost(device->getHostAddress(), port);
     //tftpRequest->getRequest();
     qDebug() << "start to handlePut status file";
-    if(!Tftp::handlePut(uSock.get(), dir.dirName(), fileName, &errorMessage, QHostAddress(device->getHostAddress()), port, request)){
+    if(!Tftp::handlePut(statusFileSocket.get(), dir.dirName(), fileName, &errorMessage, QHostAddress(device->getHostAddress()), port, request)){
         error = true;
     }
 //    if(!Tftp::receiveFile(tftpServer, QString("%1/%2").arg(dir.dirName(), fileName), &errorMessage, &mainThreadExitedOrNot, Tftp::WRQ)){
@@ -54,6 +58,7 @@ void StatusFileRcvThread::run()
     else{
         emit(sendLNSInfSignal(statusCode, totalFileNum, statusMessage, error, errorMessage));
     }
+    statusFileSocket->close();
 }
 
 

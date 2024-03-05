@@ -2,11 +2,11 @@
 
 void UploadThread::run()
 {
-    //this->tftpClient = new QUdpSocket();
-    //this->tftpServer = new QUdpSocket();
-    std::shared_ptr<QUdpSocket> uSock = std::make_shared<QUdpSocket>();
-//    this->tftpClient->connectToHost(device->getHostAddress(), 69);
-//    qDebug() << "上传线程的id是" << QThread::currentThreadId();
+    protocalFileSocket = std::make_shared<QUdpSocket>();
+    if(protocalFileSocket->bind(PROTOCAL_FILE_PORT) == false){
+        qDebug() << QString("端口号%1被占用").arg(PROTOCAL_FILE_PORT);
+        return;
+    }
     QByteArray request;
     quint16 port;
     QString fileName;
@@ -20,7 +20,7 @@ void UploadThread::run()
         //waitTimes = 0;
         switch (status) {
         case SEND_LUI_RRQ:
-            while(!Tftp::get(uSock.get(), dir.dirName(), QString("%1.LUI").arg(device->getName()), &errorMessage, QHostAddress(device->getHostAddress()), 69) &&
+            while(!Tftp::get(protocalFileSocket.get(), dir.dirName(), QString("%1.LUI").arg(device->getName()), &errorMessage, QHostAddress(device->getHostAddress()), TFTP_SERVER_PORT) &&
                   ++tries < DLP_retry + 1){}
             if(tries >= DLP_retry + 1){
                 status = ERROR;
@@ -36,7 +36,7 @@ void UploadThread::run()
                 status = ERROR;
                 break;
             }
-            if(!Tftp::put(uSock.get(), dir.dirName(), QString("%1.LUR").arg(device->getName()), &errorMessage, QHostAddress(device->getHostAddress()), 69)){
+            if(!Tftp::put(protocalFileSocket.get(), dir.dirName(), QString("%1.LUR").arg(device->getName()), &errorMessage, QHostAddress(device->getHostAddress()), TFTP_SERVER_PORT)){
                 status = ERROR;
                 break;
             }
@@ -65,7 +65,7 @@ void UploadThread::run()
             qDebug() << "fileName = " << fileName;
             for(int i = 0; i < fileList.size(); ++i){
                 if(fileList.at(i).contains(fileName)){
-                    if(Tftp::handleGet(uSock.get(), fileList.at(i).left(fileList.at(i).lastIndexOf('/')), fileName, &errorMessage, QHostAddress(device->getHostAddress()), port, request) == false){
+                    if(Tftp::handleGet(protocalFileSocket.get(), fileList.at(i).left(fileList.at(i).lastIndexOf('/')), fileName, &errorMessage, QHostAddress(device->getHostAddress()), port, request) == false){
                         qDebug() << "upload file " << fileName << "error";
                     }
                     else {

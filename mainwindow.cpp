@@ -29,8 +29,8 @@ MainWindow::MainWindow(QWidget *parent)
     userProfile = QProcessEnvironment::systemEnvironment().value("userprofile");
     qDebug() << entryList->size() << "entryList size";
     tftpServer = new QUdpSocket(this);
-    if(tftpServer->bind(QHostAddress::AnyIPv4, 69, QAbstractSocket::ShareAddress) == false){
-        QMessageBox::warning(this, "Warning", "端口69被占用");
+    if(tftpServer->bind(QHostAddress::AnyIPv4, TFTP_SERVER_PORT, QAbstractSocket::ShareAddress) == false){
+        QMessageBox::warning(this, "Warning", QString("端口%1被占用").arg(TFTP_SERVER_PORT));
         this->portOccupied = true;
         //abort();
         //QCoreApplication::exit(1);
@@ -660,8 +660,8 @@ void MainWindow::find(int index){
     QByteArray datagram = makeFindRequest();
     //发送FIND请求报文
     uSock = new QUdpSocket(this);
-    uSock->bind(QHostAddress::AnyIPv4, 0, QUdpSocket::ShareAddress);
-    uSock->writeDatagram(datagram.data(), datagram.size(), QHostAddress("10.70.180.243"), 1001);
+    uSock->bind(QHostAddress::AnyIPv4, FIND_PORT, QUdpSocket::ShareAddress);
+    uSock->writeDatagram(datagram.data(), datagram.size(), QHostAddress("169.254.5.122"), FIND_PORT);
     //在规定时间内接收FIND响应包
     connect(uSock, &QUdpSocket::readyRead, this, &MainWindow::parseFindResponse);
     connect(timer.get(), &QTimer::timeout, this, &MainWindow::onTimerTimeout);

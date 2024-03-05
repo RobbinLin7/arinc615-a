@@ -29,8 +29,8 @@ public:
     const Device *getDevice() const;
 protected:
     const Device* device;
-    QUdpSocket* tftpClient;
-    QUdpSocket* tftpServer;
+    std::shared_ptr<QUdpSocket> protocalFileSocket;
+    std::shared_ptr<QUdpSocket> statusFileSocket;
     TftpRequest* tftpRequest;
     QString statusMessage;
     QString errorMessage;
