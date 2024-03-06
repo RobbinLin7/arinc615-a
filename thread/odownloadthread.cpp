@@ -1,8 +1,62 @@
 ﻿#include "odownloadthread.h"
+#include "globalDefine.h"
 
 
 void ODownloadThread::run()
 {
+    protocalFileSocket = std::make_shared<QUdpSocket>();
+    if(protocalFileSocket->bind(PROTOCAL_FILE_PORT) == false){
+        qDebug() << QString("端口号%1被占用").arg(PROTOCAL_FILE_PORT);
+        return;
+    }
+    unsigned short tries = 0;
+    const unsigned short DLP_retry = 2;
+    while(status != END){
+        switch(status){
+        case SEND_LNO_RRQ:
+            while(!Tftp::get(protocalFileSocket.get(), dir.dirName(), QString("%1.LNO").arg(device->getName()), &errorMessage, QHostAddress(device->getHostAddress()), TFTP_SERVER_PORT) &&
+                  ++tries < DLP_retry + 1){
+                emit(oDownloadStatusMessage(errorMessage));
+            }
+            if(tries >= DLP_retry + 1){
+                emit(oDownloadStatusMessage("超过DLP重传次数"));
+                status = ERROR;
+                break;
+            }
+            status = WAIT_LNS_WRQ;
+            break;
+        case WAIT_LNS_WRQ:
+            status = WAIT_LNL_WRQ;
+            break;
+        case WAIT_LNL_WRQ:{
+            if(tftpRequest->mutex.tryLock(13 * 1000) == false){
+                status = ERROR;
+                errorMessage = QString("等待LNL写请求超时");
+                break;
+            }
+            QByteArray request = tftpRequest->getRequest();
+            quint16 port = tftpRequest->getPort();
+            tries = 0;
+            while(!Tftp::handlePut(protocalFileSocket.get(), dir.dirName(), QString("%1.LNL").arg(device->getName()), &errorMessage, QHostAddress(device->getHostAddress()), port, request) &&
+                  ++tries < DLP_retry + 1){
+                emit(oDownloadStatusMessage(errorMessage));
+            }
+            if(tries >= DLP_retry + 1){
+                emit(oDownloadStatusMessage("超过DLP重传次数"));
+                status = ERROR;
+                break;
+            }
+            emit(oDownloadStatusMessage("LNL文件接收完成"));
+            status = END;
+            break;
+        }
+        case ERROR:
+            emit(oDownloadStatusMessage("用户定义下载操作异常结束"));
+            status = END;
+        case END:
+            break;
+        }
+    }
 //    this->tftpClient = new QUdpSocket();
 //    this->tftpServer = new QUdpSocket();
 //    this->tftpClient->connectToHost(device->getHostAddress(), 69);
