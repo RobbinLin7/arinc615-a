@@ -164,6 +164,7 @@ void UploadThread::run()
     }
     emit(threadFinish(UPLOAD_OP_CODE, QString(tr("上传操作结束"))));
     emit(uploadStatusMessage(QString("上传操作结束")));
+    protocalFileSocket->close();
     qDebug() << "mainThreadExitedOrNot状态" << mainThreadExitedOrNot;
     if(subOfAuto) tftpRequest = nullptr;
 }
