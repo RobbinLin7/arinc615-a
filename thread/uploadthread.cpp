@@ -21,9 +21,12 @@ void UploadThread::run()
         switch (status) {
         case SEND_LUI_RRQ:
             while(!Tftp::get(protocalFileSocket.get(), dir.dirName(), QString("%1.LUI").arg(device->getName()), &errorMessage, QHostAddress(device->getHostAddress()), TFTP_SERVER_PORT) &&
-                  ++tries < DLP_retry + 1){}
+                  ++tries < DLP_retry + 1){
+                emit(uploadStatusMessage(errorMessage));
+            }
             if(tries >= DLP_retry + 1){
                 status = ERROR;
+                errorMessage = QString("超过DLP重传次数");
                 break;
             }
             emit(uploadStatusMessage(QString("LUI发送完成")));
