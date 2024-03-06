@@ -3,6 +3,12 @@
 #include<string>
 namespace GlobalDefine{
 
+
+#define TFTP_SERVER_PORT            59
+#define FIND_PORT                   1001
+#define PROTOCAL_FILE_PORT          54501
+#define STATUS_FILE_PORT            54500
+
 #define FUNC_RETUEN_SUCCESS         0           //函数正常返回
 #define FUNC_RETUEN_ERROR           (-1)        //函数错误返回
 
@@ -10,6 +16,7 @@ namespace GlobalDefine{
 #define MAINWINDOW_TITLE            "加卸载工具(ARINC615ATool-V1.1.1)"
 #define WINDOW_WIDTH                1500        //界面宽度
 #define WINDOW_HEIGHT               700         //界面高度
+
 
 #define MAX_LIST_WIDGET_WIDTH       600         //设备列表中widget的宽度
 #define MAX_LIST_WIDGET_HEIGHT      70         //设备列表中widget的高度

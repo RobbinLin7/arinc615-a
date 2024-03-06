@@ -21,8 +21,8 @@ public:
     static void parseOACK(QByteArray &oackData);
 
 
-    static bool put(QUdpSocket* uSock, QString path, QString fileName, QString* errorMessage, const QHostAddress& host, const quint16 port);
-    static bool get(QUdpSocket* uSock, QString path, QString fileName, QString* errorMessage, const QHostAddress& host, const quint16 port);
+    static bool put(QUdpSocket* uSock, QString path, QString fileName, QString* errorMessage, const QHostAddress& host, quint16 port);
+    static bool get(QUdpSocket* uSock, QString path, QString fileName, QString* errorMessage, const QHostAddress& host, quint16 port);
     static bool handlePut(QUdpSocket* uSock, QString path, QString fileName, QString* errorMessage, const QHostAddress& host, const quint16 port, QByteArray writeRequest);
     static bool handleGet(QUdpSocket* uSock, QString path, QString fileName, QString* errorMessage, const QHostAddress& host, const quint16 port, QByteArray readRequest);
     static bool download(QUdpSocket* uSock, QString path, QString fileName, QString* errorMessage, const QHostAddress& host, const quint16 port, unsigned short blksize, unsigned short timeout, unsigned short maxRetransmit,QByteArray& lastPacket);
