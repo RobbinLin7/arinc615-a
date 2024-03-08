@@ -12,7 +12,7 @@ class Tftp
 {
 public:
     Tftp();
-    enum TftpPacketType{RRQ, WRQ, DATA, ACK, ERROR, OACK, UNDEFINED};
+    enum TftpPacketType{RRQ = 1, WRQ, DATA, ACK, ERROR, OACK, UNDEFINED};
     //static bool sendFile(QUdpSocket *uSock, QString fileName, QString* errorMessage, bool* mainThreadExitedOrNot, enum TftpMode tftpMode = RRQ);
     //static bool sendFile_GBN(QUdpSocket *uSock, QString fileName, QString* errorMessage, bool* mainThreadExitedOrNot, enum TftpMode tftpMode = RRQ);
     //static bool receiveFile(QUdpSocket *uSock, QString fileName, QString* errorMessage, bool* mainThreadExitedOrNot, enum TftpMode tftpMode = RRQ);
@@ -38,6 +38,7 @@ public:
     static TftpPacketType getTftpPacketType(const QByteArray& tftpPacket);
     static bool checkBlockNo(const QByteArray& tftpPacket, unsigned short No);
     static bool checkAckNo(const QByteArray& tftpPacket, unsigned short No);
+    static unsigned short getNo(const QByteArray& tftpPacket);
 };
 
 

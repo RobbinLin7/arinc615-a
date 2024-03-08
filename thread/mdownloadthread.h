@@ -26,6 +26,10 @@ public slots:
 signals:
     void mDownloadStatusMessage(QString);
     void mDownloadRate(int, bool);
+
+    // MyThread interface
+public slots:
+    void parseStatusFile();
 };
 
 #endif // MDOWNLOADTHREAD_H

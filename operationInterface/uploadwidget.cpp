@@ -159,16 +159,15 @@ void UploadWidget::on_checkBox_toggled(bool checked)
     }
 }
 
-void UploadWidget::on_LUS_received(File_LUS *LUS)
+void UploadWidget::on_LUS_received(File_LUS LUS)
 {
     int progress = 0;
     for(int i = 0; i < 3; i++){
-        progress = progress * 10 + LUS->load_list_ratio[i] - '0';
+        progress = progress * 10 + LUS.load_list_ratio[i] - '0';
     }
     deviceList->at(0)->setProgress(progress);
-    if(LUS->hfile_num > 0){
-        progressDialog->setProgress(LUS->hfiles, LUS->hfile_num);
+    if(LUS.hfile_num > 0){
+        progressDialog->setProgress(LUS.hfiles, LUS.hfile_num);
     }
-    free(LUS);
 }
 

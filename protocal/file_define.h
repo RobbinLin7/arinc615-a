@@ -89,13 +89,13 @@ typedef struct File_LCL{
 
 struct File_LCS{
     uint32 file_len;//文件大小
-    uint16 Pro_ver;//协议版本号
-    uint16 count;//计数
-    uint16 stat_no;//信息操作状态码
-    uint16 wait_time;//等待时长
-    uint16 estimate_time;//估计时长
+    char Pro_ver[2];//协议版本号
+    uint16 counter;//计数
+    uint16 statusCode;//信息操作状态码
+    uint16 exceptionTimer;//等待时长
+    uint16 estimatedTime;//估计时长
     unsigned char stat_des_len;//状态描述长度
-    unsigned char stat_des[255];//状态描述
+    char stat_des[256];//状态描述
 };
 /*---------------------UPLAOD---------------------*/
 
@@ -129,7 +129,7 @@ typedef  struct File_LUR{
 
 struct File_LUS{
     uint32 file_len;//文件长度
-    uint16 Pro_ver;//协议版本号
+    char Pro_ver[2];//协议版本号
     uint16 op_stat_code;//操作状态吗
     unsigned char stat_des_len;//状态描述长度
     char stat_des[256];//状态描述

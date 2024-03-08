@@ -41,6 +41,10 @@ signals:
     void sendFileList(QList<QPair<QString, QString>>*);
     void oDownloadStatusMessage(QString);
     void oDownloadRate(int, bool);
+
+    // MyThread interface
+public slots:
+    void parseStatusFile();
 };
 
 #endif // ODOWNLOADTHREAD_H

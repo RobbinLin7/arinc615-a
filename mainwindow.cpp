@@ -776,34 +776,13 @@ void MainWindow::tftpServerTftpReadReady()
         int i;
         for(i = 0; i < threads.size(); i++){
             if(remote == threads.at(i)->getHostAddress()){
-                if(fileName.endsWith(".LUS") || fileName.endsWith(".LNS")){
+                if(fileName.endsWith(".LUS") || fileName.endsWith(".LNS") || fileName.endsWith(".LCS")){
                     TftpRequest *tftpRequest = new TftpRequest();
-                    StatusFileRcvThread::StatusFileType fileType;
-                    if(fileName.endsWith(".LUS")) {
-                        fileType = StatusFileRcvThread::LUS;
-                        qDebug() << fileName << "--LUS--";
-                    }
-                    else{
-                        fileType = StatusFileRcvThread::LNS;
-                    }
                     tftpRequest->setRequestAndPort(datagram, port);
-                    MyThread* statusFileRcvThread = new StatusFileRcvThread(fileType, tftpRequest, threads.at(i)->getDevice(), this);
-                    UploadThread* uploadThread = dynamic_cast<UploadThread*>(threads.at(i));
-                    MDownloadThread* mDownloadThread = dynamic_cast<MDownloadThread*>(threads.at(i));
-                    ODownloadThread* oDownloadThread = dynamic_cast<ODownloadThread*>(threads.at(i));
-                    //AutoConfigThread* autoConfigThread = dynamic_cast<AutoConfigThread*>(threads.at(i));
-                    if(uploadThread){
-//                        connect((StatusFileRcvThread*)statusFileRcvThread, &StatusFileRcvThread::sendLUSInfSignal, uploadThread,
-//                                &UploadThread::rcvStatusCodeAndMessageSlot);
-                        connect((StatusFileRcvThread*)statusFileRcvThread, &StatusFileRcvThread::sendLUSInfSignal, mUploadWidget.get(), &UploadWidget::on_LUS_received);
-                    }
-                    else if(oDownloadThread){
-                        connect((StatusFileRcvThread*)statusFileRcvThread, &StatusFileRcvThread::sendLNSInfSignal, oDownloadThread,
-                                &ODownloadThread::rcvStatusCodeAndMessageSlot);
-                    }
-                    else if(mDownloadThread){
-                        connect((StatusFileRcvThread*)statusFileRcvThread, &StatusFileRcvThread::sendLNSInfSignal, mDownloadThread,
-                                &MDownloadThread::rcvStatusCodeAndMessageSlot);
+                    MyThread* statusFileRcvThread = new StatusFileRcvThread(tftpRequest, threads.at(i)->getDevice(), this);
+                    connect((StatusFileRcvThread*)statusFileRcvThread, &StatusFileRcvThread::statusFileRcvFinishedSignal, threads.at(i), &MyThread::parseStatusFile);
+                    if(fileName.endsWith(".LUS")){
+                        connect((UploadThread*)threads.at(i), &UploadThread::parseStatusFileFinished, mUploadWidget.get(), &UploadWidget::on_LUS_received);
                     }
                     pool.start(statusFileRcvThread);
                     statusFileRcvThread->setAutoDelete(true);

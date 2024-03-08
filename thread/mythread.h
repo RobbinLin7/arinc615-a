@@ -47,9 +47,9 @@ private:
 signals:
     void threadFinish(bool status, QString info);
     void mainThreadExitedSignal();
-
 public slots:
     void mainThreadExited();
+    virtual void parseStatusFile() = 0;
 };
 
 #endif // MYTHREAD_H
