@@ -109,6 +109,11 @@ QByteArray Tftp::makeTftpError(quint16 errorCode, QString errorMessage)
     return error;
 }
 
+QByteArray Tftp::makeTftpAbort(unsigned short statusCode)
+{
+    return makeTftpError(0, QString("ABORT:%1").arg(statusCode, 4, 16, QChar('0')));
+}
+
 Tftp::TftpPacketType Tftp::getTftpPacketType(const QByteArray &tftpPacket)
 {
     if(tftpPacket.size() > 2 && tftpPacket[1] <= 6){

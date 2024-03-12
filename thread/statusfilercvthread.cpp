@@ -21,14 +21,13 @@ void StatusFileRcvThread::run()
     unsigned short tries = 0;
     while(!Tftp::handlePut(statusFileSocket.get(), dir.dirName(), fileName, &errorMessage, QHostAddress(device->getHostAddress()), port, request)
           && ++tries < DLP_retry + 1){
-
     }
     if(tries >= DLP_retry + 1){
         qDebug() << "超过DLP重传次数" << QString("状态文件%1获取失败").arg(fileName);
     }
+
     else emit statusFileRcvFinishedSignal();
     statusFileSocket->close();
-
 }
 
 

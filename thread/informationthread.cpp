@@ -86,20 +86,20 @@ File_LCL* InformationThread::parseLCL(){
         for(int i = 0; i < LCL_struct->Hw_num; i++){
             in >> LCL_struct->Hws[i].target_code_length;
             qDebug() << LCL_struct->Hws[i].target_code_length << "target_code_length";
-            in.readRawData(LCL_struct->Hws[i].target_code, LCL_struct->Hws[i].target_code_length);
+            in.readRawData(LCL_struct->Hws[i].target_code, LCL_struct->Hws[i].target_code_length + 1); //要读入'\0'
             qDebug() << LCL_struct->Hws[i].target_code << "target_code";
             in >> LCL_struct->Hws[i].serial_length;
-            in.readRawData(LCL_struct->Hws[i].serial_code, LCL_struct->Hws[i].serial_length);
+            in.readRawData(LCL_struct->Hws[i].serial_code, LCL_struct->Hws[i].serial_length + 1);
             in >> LCL_struct->Hws[i].number_part_number;
             const unsigned int partsNo = LCL_struct->Hws[i].number_part_number;
             LCL_struct->Hws[i].parts = (partInfo*)malloc(sizeof(partInfo) * partsNo);
             for(unsigned int j = 0; j < partsNo; j++){
                 in >> LCL_struct->Hws[i].parts[j].part_number_length;
-                in.readRawData(LCL_struct->Hws[i].parts[j].part_number, LCL_struct->Hws[i].parts[j].part_number_length);
+                in.readRawData(LCL_struct->Hws[i].parts[j].part_number, LCL_struct->Hws[i].parts[j].part_number_length + 1);
                 in >> LCL_struct->Hws[i].parts[j].part_design_length;
-                in.readRawData(LCL_struct->Hws[i].parts[j].part_design, LCL_struct->Hws[i].parts[j].part_design_length);
+                in.readRawData(LCL_struct->Hws[i].parts[j].part_design, LCL_struct->Hws[i].parts[j].part_design_length + 1);
                 in >> LCL_struct->Hws[i].parts[j].amend_length;
-                in.readRawData(LCL_struct->Hws[i].parts[j].amend, LCL_struct->Hws[i].parts[j].amend_length);
+                in.readRawData(LCL_struct->Hws[i].parts[j].amend, LCL_struct->Hws[i].parts[j].amend_length + 1);
             }
         }
         LCL.close();

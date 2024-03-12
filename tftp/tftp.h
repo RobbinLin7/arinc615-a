@@ -34,6 +34,7 @@ public:
     static QByteArray makeTftpAck(quint16 block);
     static QByteArray makeTftpOAck(std::initializer_list<std::pair<std::string, std::string>> options);
     static QByteArray makeTftpError(quint16 errorCode, QString errorMessage);
+    static QByteArray makeTftpAbort(unsigned short statusCode);
 
     static TftpPacketType getTftpPacketType(const QByteArray& tftpPacket);
     static bool checkBlockNo(const QByteArray& tftpPacket, unsigned short No);
