@@ -4,6 +4,7 @@
 #include <QRunnable>
 #include <QHostAddress>
 #include <QUdpSocket>
+#include <cstring>
 #include "globalDefine.h"
 #include "device.h"
 #include "mythread.h"
@@ -15,12 +16,11 @@ public:
     UploadThread(QStringList fileList, const Device* device, TftpRequest* tftpRequest, bool subOfAuto = false, QObject *parent = 0):
         MyThread(device, tftpRequest, parent), fileList(fileList){
         status = SEND_LUI_RRQ;
-        this->subOfAuto = subOfAuto;
+        memset(&LUS, 0, sizeof(LUS));
     }
     void run() override;
     void makeLUR();
     void makeLUH();
-    static File_LUS* parseLUS(QFile*);
     enum status_set{SEND_LUI_RRQ, SEND_LUR_WRQ, WAIT_LUH_RRQ, WAIT_FILE_RRQ, END, ERROR} status;
 signals:
     void uploadResult(bool);
@@ -32,12 +32,11 @@ private:
     QMap<QString, bool> files_sent;
     unsigned int fileSentCnt = 0;
     unsigned int waitTimes = 0;
-    bool subOfAuto;
+    File_LUS LUS;
+signals:
+    void parseStatusFileFinished(File_LUS);
 public slots:
-    void mainThreadExited(){
-        mainThreadExitedOrNot = true;
-    }
-    void rcvStatusCodeAndMessageSlot(quint16 statusCode, QString statusMessage, bool error, QString errorMessage);
+    void parseStatusFile() override;
 };
 
 #endif // UPLOADTHREAD_H

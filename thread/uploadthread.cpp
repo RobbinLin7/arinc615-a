@@ -169,7 +169,7 @@ void UploadThread::run()
     emit(uploadStatusMessage(QString("上传操作结束")));
     protocalFileSocket->close();
     qDebug() << "mainThreadExitedOrNot状态" << mainThreadExitedOrNot;
-    if(subOfAuto) tftpRequest = nullptr;
+//    if(subOfAuto) tftpRequest = nullptr;
 }
 
 void UploadThread::makeLUR(){
@@ -335,44 +335,45 @@ void UploadThread::makeLUH()
 }
 
 
-File_LUS* UploadThread::parseLUS(QFile* fLUS)
+void UploadThread::parseStatusFile()
 {
-    if(fLUS->open(QIODevice::ReadOnly) == false){
-        return nullptr;
+    free(LUS.hfiles);
+    QFile fLUS(QString("%1/%2.LUS").arg(dir.dirName()).arg(device->getName()));
+    if(fLUS.open(QIODevice::ReadOnly) == false){
+        return;
     }
-    File_LUS *LUS = (File_LUS*)malloc(sizeof(File_LUS));
-    memset(LUS, 0, sizeof(File_LUS));
-    QDataStream in(fLUS);
+    memset(&LUS, 0, sizeof(File_LUS));
+    QDataStream in(&fLUS);
 #ifdef BIG_ENDIAN
         in.setByteOrder(QDataStream::BigEndian);
 #else
         in.setByteOrder(QDataStream::LittleEndian);
 #endif
 
-    in >> LUS->file_len;
-    in >> LUS->Pro_ver;
-    in >> LUS->op_stat_code;
-    in >> LUS->stat_des_len;
-    in.readRawData(LUS->stat_des, LUS->stat_des_len);
-    in >> LUS->counter;
-    in >> LUS->excep_timer;
-    in >> LUS->estim_timer;
-    in.readRawData(LUS->load_list_ratio, 3);
-    in >> LUS->hfile_num;
-    if(LUS->hfile_num > 0) LUS->hfiles = (struct Hfile_info_LUS*)malloc(sizeof(Hfile_info_LUS) * LUS->hfile_num);
-    for(int i = 0; i < LUS->hfile_num; ++i){
-        in >> LUS->hfiles[i].fileLen;
-        in >> LUS->hfiles[i].Hfile_name_len;
-        in.readRawData(LUS->hfiles[i].Hfile_name, LUS->hfiles[i].Hfile_name_len + 1);
-        in >> LUS->hfiles[i].load_part_num_name_len;
-        in.readRawData(LUS->hfiles[i].load_part_num_name, LUS->hfiles[i].load_part_num_name_len + 1);
-        in.readRawData(LUS->hfiles[i].load_ratio, 3);
-        in >> LUS->hfiles[i].load_stat;
-        in >> LUS->hfiles[i].load_stat_des_len;
-        in.readRawData(LUS->hfiles[i].load_stat_des, LUS->hfiles[i].load_stat_des_len + 1);
+    in >> LUS.file_len;
+    in.readRawData(LUS.Pro_ver, 2);
+    in >> LUS.op_stat_code;
+    in >> LUS.stat_des_len;
+    in.readRawData(LUS.stat_des, LUS.stat_des_len);
+    in >> LUS.counter;
+    in >> LUS.excep_timer;
+    in >> LUS.estim_timer;
+    in.readRawData(LUS.load_list_ratio, 3);
+    in >> LUS.hfile_num;
+    if(LUS.hfile_num > 0) LUS.hfiles = (struct Hfile_info_LUS*)malloc(sizeof(Hfile_info_LUS) * LUS.hfile_num);
+    for(int i = 0; i < LUS.hfile_num; ++i){
+        in >> LUS.hfiles[i].fileLen;
+        in >> LUS.hfiles[i].Hfile_name_len;
+        in.readRawData(LUS.hfiles[i].Hfile_name, LUS.hfiles[i].Hfile_name_len + 1);
+        in >> LUS.hfiles[i].load_part_num_name_len;
+        in.readRawData(LUS.hfiles[i].load_part_num_name, LUS.hfiles[i].load_part_num_name_len + 1);
+        in.readRawData(LUS.hfiles[i].load_ratio, 3);
+        in >> LUS.hfiles[i].load_stat;
+        in >> LUS.hfiles[i].load_stat_des_len;
+        in.readRawData(LUS.hfiles[i].load_stat_des, LUS.hfiles[i].load_stat_des_len + 1);
 
-        qDebug() << LUS->hfiles[i].Hfile_name_len << LUS->hfiles[i].Hfile_name << LUS->hfiles[i].load_part_num_name_len << LUS->hfiles[i].load_part_num_name
-                 << LUS->hfiles[i].load_ratio << LUS->hfiles[i].load_stat << LUS->hfiles[i].load_stat_des_len << LUS->hfiles[i].load_stat_des;
+        qDebug() << LUS.hfiles[i].Hfile_name_len << LUS.hfiles[i].Hfile_name << LUS.hfiles[i].load_part_num_name_len << LUS.hfiles[i].load_part_num_name
+                 << LUS.hfiles[i].load_ratio << LUS.hfiles[i].load_stat << LUS.hfiles[i].load_stat_des_len << LUS.hfiles[i].load_stat_des;
     }
 
 //    LUS->file_len = data[0] + ((uint32)data[1] << 8) + ((uint32)data[2] << 16) + ((uint32)data[3] << 24);
@@ -381,12 +382,12 @@ File_LUS* UploadThread::parseLUS(QFile* fLUS)
 //    LUS->stat_des_len = data[8];
 //    strcpy(LUS->stat_des, QString::fromStdString(data.mid(9, LUS->stat_des_len).toStdString()).toUtf8().data());
 //    memcpy(LUS->load_list_ratio, data.data() + 9 + LUS->stat_des_len + 6, 3);
-    qDebug() << LUS->stat_des << LUS->load_list_ratio;
-    fLUS->close();
-    return LUS;
+    fLUS.close();
+    emit(parseStatusFileFinished(LUS));
+    return;
 }
-void UploadThread::rcvStatusCodeAndMessageSlot(quint16 statusCode, QString statusMessage, bool error, QString errorMessage)
-{
+//void UploadThread::rcvStatusCodeAndMessageSlot(quint16 statusCode, QString statusMessage, bool error, QString errorMessage)
+//{
 //    qDebug() << "rcvStatusCodeAndMessageSlot thread id" << QThread::currentThreadId();
 //    conditionMutex.lock();
 //    this->statusMessage = statusMessage;
@@ -427,4 +428,4 @@ void UploadThread::rcvStatusCodeAndMessageSlot(quint16 statusCode, QString statu
 //    statusFileRcved = true;
 //    statusFileRcvedConditon.wakeOne();
 //    conditionMutex.unlock();
-}
+//}

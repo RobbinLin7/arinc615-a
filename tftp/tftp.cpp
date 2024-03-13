@@ -109,10 +109,15 @@ QByteArray Tftp::makeTftpError(quint16 errorCode, QString errorMessage)
     return error;
 }
 
+QByteArray Tftp::makeTftpAbort(unsigned short statusCode)
+{
+    return makeTftpError(0, QString("ABORT:%1").arg(statusCode, 4, 16, QChar('0')));
+}
+
 Tftp::TftpPacketType Tftp::getTftpPacketType(const QByteArray &tftpPacket)
 {
     if(tftpPacket.size() > 2 && tftpPacket[1] <= 6){
-        return static_cast<TftpPacketType>(tftpPacket[1] - 1);
+        return static_cast<TftpPacketType>(tftpPacket[1]);
     }
     return UNDEFINED;
 }
@@ -138,6 +143,14 @@ bool Tftp::checkAckNo(const QByteArray& tftpPacket, unsigned short No){
     unsigned short low = static_cast<unsigned char>(tftpPacket[3]);
     unsigned short ackNo = (high << 8) + low;
     return ackNo == No;
+}
+
+unsigned short Tftp::getNo(const QByteArray &tftpPacket)
+{
+    unsigned short high = static_cast<unsigned char>(tftpPacket[2]);
+    unsigned short low = static_cast<unsigned char>(tftpPacket[3]);
+    unsigned short no = (high << 8) + low;
+    return no;
 }
 
 QByteArray Tftp::makeTftpOAck(std::initializer_list<std::pair<std::string, std::string> > options)
@@ -282,7 +295,7 @@ bool Tftp::get(QUdpSocket *uSock, QString path, QString fileName, QString *error
 
 bool Tftp::handlePut(QUdpSocket *uSock, QString path, QString fileName, QString *errorMessage, const QHostAddress &host, const quint16 port, QByteArray writeRequest)
 {
-    qDebug() << "port = " << port << "in handlePut";
+    //qDebug() << "port = " << port << "in handlePut";
     //1.consulting stage
     unsigned short blksize = blksize_default, timeout = timeout_default,maxRetransmit = maxRetransmit_default;
     unsigned short blkSizeFromRequest = -1, timeoutFromRequest = -1, maxRetransmitFromRequest = -1;
@@ -375,19 +388,60 @@ bool Tftp::handleGet(QUdpSocket *uSock, QString path, QString fileName, QString 
                                    std::make_pair(std::string("timeout"), std::to_string(timeout)),
                                    std::make_pair(std::string("max-retransmit"), std::to_string(maxRetransmit))});
     uSock->writeDatagram(oack, host, port);
-
+    unsigned short retry = 0;
     //wait for Ack 0
-    while(uSock->waitForReadyRead(1000 * timeout) == false){}
-    QByteArray ack;
-    ack.resize(uSock->pendingDatagramSize());
-    uSock->readDatagram(ack.data(), ack.size());
+    while(1){
+        while(uSock->waitForReadyRead(1000 * timeout) == false && retry < maxRetransmit){
+            uSock->writeDatagram(oack, host, port);
+            ++retry;
+        }
+        if(uSock->hasPendingDatagrams() == false){
+            *errorMessage = QString("等待ACK 0超时");
+            return false;
+        }
+        QByteArray ack;
+        ack.resize(uSock->pendingDatagramSize());
+        uSock->readDatagram(ack.data(), ack.size());
+        if(getTftpPacketType(ack) != ACK){
+            qDebug() << "期待ACK报文 但收到OPCODE=" << getTftpPacketType(ack);
+            if(retry < maxRetransmit){
+                uSock->writeDatagram(oack, host, port);
+                ++retry;
+                continue;
+            }
+            else{
+                *errorMessage = QString("等待ACK 0超时");
+                return false;
+            }
+        }
+        else{
+            if(getNo(ack) != 0){
+                qDebug() << QString("期待收到ACK %1 但是收到%2").arg(0).arg(getNo(ack));
+                if(retry < maxRetransmit){
+                    uSock->writeDatagram(oack, host, port);
+                    ++retry;
+                    continue;
+                }
+                else{
+                    *errorMessage = QString("等待ACK 0超时");
+                    return false;
+                }
+
+            }
+            else break;
+        }
+    }
+    qDebug() << "receive ack 0 success in handleGet()";
+//    QByteArray ack;
+//    ack.resize(uSock->pendingDatagramSize());
+//    uSock->readDatagram(ack.data(), ack.size());
     return upload(uSock, path, fileName, errorMessage, host, port, blksize, timeout, maxRetransmit);
 }
 
 
 bool Tftp::download(QUdpSocket *uSock, QString path, QString fileName, QString *errorMessage, const QHostAddress &host, const quint16 port, unsigned short blksize, unsigned short timeout, unsigned short maxRetransmit, QByteArray& previousPacket)
 {
-    qDebug() << "port = " << port;
+    //qDebug() << "port = " << port;
     QFile file(path + "/" + fileName);
     if(file.open(QIODevice::WriteOnly) == false){
         *errorMessage = QString("文件打开失败%1").arg(fileName);

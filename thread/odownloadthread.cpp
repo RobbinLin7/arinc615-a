@@ -344,4 +344,9 @@ void ODownloadThread::rcvStatusCodeAndMessageSlot(quint16 statusCode, unsigned s
     conditionMutex.unlock();
 }
 
+void ODownloadThread::parseStatusFile()
+{
+
+}
+
 
