@@ -12,16 +12,15 @@ class UploadThread : public MyThread
 {
     Q_OBJECT
 public:
-    UploadThread(QStringList fileList, const Device* device, TftpRequest* tftpRequest, bool subOfAuto = false, QObject *parent = 0):
+    UploadThread(QStringList fileList, const Device* device, TftpRequest* tftpRequest, QObject *parent = 0):
         MyThread(device, tftpRequest, parent), fileList(fileList){
-        status = SEND_LUI_RRQ;
-        this->subOfAuto = subOfAuto;
+        status = INITIALIZATION;
     }
     void run() override;
     void makeLUR();
     void makeLUH();
     static File_LUS* parseLUS(QFile*);
-    enum status_set{SEND_LUI_RRQ, SEND_LUR_WRQ, WAIT_LUH_RRQ, WAIT_FILE_RRQ, END, ERROR} status;
+    enum status_set{INITIALIZATION, LIST_TRANSEFER, TRANSFER, END, ERROR} status;
 signals:
     void uploadResult(bool);
     void uploadStatusMessage(QString);
