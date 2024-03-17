@@ -29,8 +29,8 @@ MainWindow::MainWindow(QWidget *parent)
     userProfile = QProcessEnvironment::systemEnvironment().value("userprofile");
     qDebug() << entryList->size() << "entryList size";
     tftpServer = new QUdpSocket(this);
-    if(tftpServer->bind(QHostAddress::AnyIPv4, 69, QAbstractSocket::ShareAddress) == false){
-        QMessageBox::warning(this, "Warning", "端口69被占用");
+    if(tftpServer->bind(QHostAddress::AnyIPv4, TFTP_SERVER_PORT, QAbstractSocket::ShareAddress) == false){
+        QMessageBox::warning(this, "Warning", QString("端口%1被占用").arg(TFTP_SERVER_PORT));
         this->portOccupied = true;
         //abort();
         //QCoreApplication::exit(1);
@@ -660,8 +660,8 @@ void MainWindow::find(int index){
     QByteArray datagram = makeFindRequest();
     //发送FIND请求报文
     uSock = new QUdpSocket(this);
-    uSock->bind(QHostAddress::AnyIPv4, 0, QUdpSocket::ShareAddress);
-    uSock->writeDatagram(datagram.data(), datagram.size(), QHostAddress("10.70.180.243"), 1001);
+    uSock->bind(QHostAddress::AnyIPv4, FIND_PORT, QUdpSocket::ShareAddress);
+    uSock->writeDatagram(datagram.data(), datagram.size(), QHostAddress("192.168.1.99"), FIND_PORT);
     //在规定时间内接收FIND响应包
     connect(uSock, &QUdpSocket::readyRead, this, &MainWindow::parseFindResponse);
     connect(timer.get(), &QTimer::timeout, this, &MainWindow::onTimerTimeout);
@@ -776,43 +776,20 @@ void MainWindow::tftpServerTftpReadReady()
         int i;
         for(i = 0; i < threads.size(); i++){
             if(remote == threads.at(i)->getHostAddress()){
-                if(fileName.endsWith(".LUS") || fileName.endsWith(".LNS")){
+                if(fileName.endsWith(".LUS") || fileName.endsWith(".LNS") || fileName.endsWith(".LCS")){
                     TftpRequest *tftpRequest = new TftpRequest();
-                    StatusFileRcvThread::StatusFileType fileType;
-                    if(fileName.endsWith(".LUS")) {
-                        fileType = StatusFileRcvThread::LUS;
-                        qDebug() << fileName << "--LUS--";
-                    }
-                    else{
-                        fileType = StatusFileRcvThread::LNS;
-                    }
                     tftpRequest->setRequestAndPort(datagram, port);
-                    MyThread* statusFileRcvThread = new StatusFileRcvThread(fileType, tftpRequest, threads.at(i)->getDevice(), this);
-                    UploadThread* uploadThread = dynamic_cast<UploadThread*>(threads.at(i));
-                    MDownloadThread* mDownloadThread = dynamic_cast<MDownloadThread*>(threads.at(i));
-                    ODownloadThread* oDownloadThread = dynamic_cast<ODownloadThread*>(threads.at(i));
-                    //AutoConfigThread* autoConfigThread = dynamic_cast<AutoConfigThread*>(threads.at(i));
-                    if(uploadThread){
-//                        connect((StatusFileRcvThread*)statusFileRcvThread, &StatusFileRcvThread::sendLUSInfSignal, uploadThread,
-//                                &UploadThread::rcvStatusCodeAndMessageSlot);
-                        connect((StatusFileRcvThread*)statusFileRcvThread, &StatusFileRcvThread::sendLUSInfSignal, mUploadWidget.get(), &UploadWidget::on_LUS_received);
-                    }
-                    else if(oDownloadThread){
-                        connect((StatusFileRcvThread*)statusFileRcvThread, &StatusFileRcvThread::sendLNSInfSignal, oDownloadThread,
-                                &ODownloadThread::rcvStatusCodeAndMessageSlot);
-                    }
-                    else if(mDownloadThread){
-                        connect((StatusFileRcvThread*)statusFileRcvThread, &StatusFileRcvThread::sendLNSInfSignal, mDownloadThread,
-                                &MDownloadThread::rcvStatusCodeAndMessageSlot);
+                    MyThread* statusFileRcvThread = new StatusFileRcvThread(tftpRequest, threads.at(i)->getDevice(), this);
+                    connect((StatusFileRcvThread*)statusFileRcvThread, &StatusFileRcvThread::statusFileRcvFinishedSignal, threads.at(i), &MyThread::parseStatusFile);
+                    if(fileName.endsWith(".LUS")){
+                        connect((UploadThread*)threads.at(i), &UploadThread::parseStatusFileFinished, mUploadWidget.get(), &UploadWidget::on_LUS_received);
                     }
                     pool.start(statusFileRcvThread);
                     statusFileRcvThread->setAutoDelete(true);
                 }
                 else{
-                    //qDebug() << "fileName:" << fileName;
                     tftpRequest = threads.at(i)->getTftpRequest();
                     tftpRequest->setRequestAndPort(datagram, port);
-                    qDebug() << "port = " << port << "1";
                     tftpRequest->mutex.tryLock();
                     tftpRequest->mutex.unlock();
                 }

@@ -2,52 +2,61 @@
 
 void UploadThread::run()
 {
-    //this->tftpClient = new QUdpSocket();
-    //this->tftpServer = new QUdpSocket();
-    std::shared_ptr<QUdpSocket> uSock = std::make_shared<QUdpSocket>();
-//    this->tftpClient->connectToHost(device->getHostAddress(), 69);
-//    qDebug() << "上传线程的id是" << QThread::currentThreadId();
+    protocalFileSocket = std::make_shared<QUdpSocket>();
+    if(protocalFileSocket->bind(PROTOCAL_FILE_PORT) == false){
+        qDebug() << QString("端口号%1被占用").arg(PROTOCAL_FILE_PORT);
+        return;
+    }
     QByteArray request;
     quint16 port;
     QString fileName;
     QFile LUR(QString("%1/%2.LUR").arg(dir.dirName(), device->getName()));
     QFile LUH(QString("%1/%2.LUH").arg(dir.dirName(), device->getName()));
-    bool flag = false;
+    //bool flag = false;
     const unsigned short DLP_retry = 2;
     unsigned short tries = 0;
     QString errorMessage;
     while(status != END){
         //waitTimes = 0;
         switch (status) {
-        case SEND_LUI_RRQ:
-            while(!Tftp::get(uSock.get(), dir.dirName(), QString("%1.LUI").arg(device->getName()), &errorMessage, QHostAddress(device->getHostAddress()), 69) &&
-                  ++tries < DLP_retry + 1){}
+        case INITIALIZATION:
+            while(!Tftp::get(protocalFileSocket.get(), dir.dirName(), QString("%1.LUI").arg(device->getName()), &errorMessage, QHostAddress(device->getHostAddress()), TFTP_SERVER_PORT) &&
+                  ++tries < DLP_retry + 1){
+                emit(uploadStatusMessage(errorMessage));
+            }
             if(tries >= DLP_retry + 1){
                 status = ERROR;
+                errorMessage = QString("请求LUI文件失败");
                 break;
             }
+            tries = 0;
             emit(uploadStatusMessage(QString("LUI发送完成")));
-            status = SEND_LUR_WRQ;
+            status = LIST_TRANSEFER;
             break;
-        case SEND_LUR_WRQ:
+        case LIST_TRANSEFER:{
+            std::unique_lock<std::mutex> lock(m);
+            while(flag == false){
+                cv.wait(lock);
+            }
+            flag = false;
+            if(LUS.op_stat_code != 0x0001){
+                break;
+            }
+            //当状态码为0x0001时表示设备端接受上传操作
             makeLUR();
             if(!LUR.exists()){
                 errorMessage = QString("LUR文件创建失败");
                 status = ERROR;
                 break;
             }
-            if(!Tftp::put(uSock.get(), dir.dirName(), QString("%1.LUR").arg(device->getName()), &errorMessage, QHostAddress(device->getHostAddress()), 69)){
+            if(!Tftp::put(protocalFileSocket.get(), dir.dirName(), QString("%1.LUR").arg(device->getName()), &errorMessage, QHostAddress(device->getHostAddress()), TFTP_SERVER_PORT)){
                 status = ERROR;
                 break;
             }
-//            if(!Tftp::sendFile(tftpClient, QString("%1/%2.LUR").arg(dir.dirName(), device->getName()), &errorMessage, &mainThreadExitedOrNot, Tftp::WRQ)){
-//                status = ERROR;
-//                break;
-//            }
-//            emit(uploadStatusMessage("LUR发送完成"));
-            status = WAIT_FILE_RRQ;
+            status = TRANSFER;
             break;
-        case WAIT_FILE_RRQ:
+        }
+        case TRANSFER:{
             if(tftpRequest->mutex.tryLock(13 * 1000) == false){
                 status = ERROR;
                 errorMessage = QString("等待数据文件读请求超时");
@@ -55,17 +64,11 @@ void UploadThread::run()
             }
             request = tftpRequest->getRequest();
             port = tftpRequest->getPort();
-//            tftpRequest->mutex.unlock();
-//            if(request.size() == 0){
-//                status = ERROR;
-//                errorMessage = QString("等待数据文件读请求超时");
-//                break;
-//            }
             fileName = request.mid(2).split('\0').at(0);
             qDebug() << "fileName = " << fileName;
             for(int i = 0; i < fileList.size(); ++i){
                 if(fileList.at(i).contains(fileName)){
-                    if(Tftp::handleGet(uSock.get(), fileList.at(i).left(fileList.at(i).lastIndexOf('/')), fileName, &errorMessage, QHostAddress(device->getHostAddress()), port, request) == false){
+                    if(Tftp::handleGet(protocalFileSocket.get(), fileList.at(i).left(fileList.at(i).lastIndexOf('/')), fileName, &errorMessage, QHostAddress(device->getHostAddress()), port, request) == false){
                         qDebug() << "upload file " << fileName << "error";
                     }
                     else {
@@ -76,87 +79,30 @@ void UploadThread::run()
                     break;
                 }
             }
-            if(fileSentCnt == fileList.size()){
+            //等待状态文件的指示，判断操作还在进行，还是出现错误，还是完成
+            std::unique_lock<std::mutex> lock(m);
+            do{
+                cv.wait(lock);
+            }while(flag == false);
+            flag = false;
+            switch(LUS.op_stat_code){
+            case 0x0002:
+                break;
+            case 0x0003:
                 status = END;
+                break;
+            default:
+                status = END;
+                break;
             }
             break;
-//        case WAIT_LUH_RRQ:
-//            request = tftpRequest->getRequest(&mainThreadExitedOrNot);
-//            if(request.size() == 0){
-//                status = ERROR;
-//                errorMessage = mainThreadExitedOrNot ? QString(tr("主线程已退出")) : QString("等待LUH文件读请求超时");
-//                break;
-//            }
-//            port = tftpRequest->getPort();
-//            fileName = request.mid(2).split('\0').at(0);
-//            tftpRequest->lockMutex();
-//            tftpServer->disconnectFromHost();
-//            tftpServer->connectToHost(device->getHostAddress(), port);
-//            if(fileName.endsWith(".LUH")){
-//                makeLUH();
-//                if(!LUH.exists()){
-//                    status = ERROR;
-//                    errorMessage = QString("LUH文件创建失败");
-//                    break;
-//                }
-//                if(!Tftp::sendFile(tftpServer, QString("%1\\%2.LUH").arg(dir.dirName(), device->getName()), &errorMessage, &mainThreadExitedOrNot, Tftp::RRQ)){
-//                    status = ERROR;
-//                    break;
-//                }
-//            }
-//            else{
-//                status = ERROR;
-//                errorMessage = QString("未知文件请求错误");
-//                break;
-//            }
-//            emit(uploadStatusMessage("LUH发送完成"));
-//            status = WAIT_FILE_RRQ;
-//            break;
-//        case WAIT_FILE_RRQ:
-//            request = tftpRequest->getRequest(&mainThreadExitedOrNot);
-//            if(request.size() == 0){
-//                status = ERROR;
-//                errorMessage = mainThreadExitedOrNot ? QString(tr("主线程已退出")) : QString("等待上传文件读请求超时");
-//                break;
-//            }
-//            port = tftpRequest->getPort();
-//            fileName = request.mid(2).split('\0').at(0);
-//            tftpRequest->lockMutex();
-//            tftpServer->disconnectFromHost();
-//            tftpServer->connectToHost(device->getHostAddress(), port);
-//            int ii;
-//            for(int i = 0; i < fileList.size(); i++){
-//                if(fileList.at(i).contains(fileName)){
-//                    if(!Tftp::sendFile(tftpServer, fileList.at(i), &errorMessage, &mainThreadExitedOrNot, Tftp::RRQ)){
-//                        status = ERROR;
-//                        flag = true;
-//                    }
-//                    if(files_sent[fileName] == false){
-//                        fileSentCnt++;
-//                        files_sent[fileName] = true;
-//                    }
-//                    ii = i;
-//                    break;
-//                }
-//            }
-//            if(flag) break;
-//            emit(uploadRate(fileSentCnt * 100 / fileList.size(), true));
-//            emit(uploadStatusMessage(QString("设备%1: 文件%2上传完成.(%3/%4)")
-//                                        .arg(device->getName())
-//                                        .arg(fileList.at(ii))
-//                                        .arg(fileSentCnt)
-//                                        .arg(fileList.size())));
-//            QThread::msleep(200);
-//            break;
+        }
         case ERROR:
+            //TODO----执行Abort操作
             emit(uploadStatusMessage(errorMessage));
-            //emit(uploadStatusMessage(QString(tr("上传操作异常结束"))));
-            emit(uploadResult(false));
-            emit(uploadRate(0, false));
+            //emit(uploadResult(false));
+            //emit(uploadRate(0, false));
             status = END;
-            break;
-        case END:
-            emit(uploadStatusMessage(QString("上传操作结束")));
             break;
         default:
             break;
@@ -164,8 +110,7 @@ void UploadThread::run()
     }
     emit(threadFinish(UPLOAD_OP_CODE, QString(tr("上传操作结束"))));
     emit(uploadStatusMessage(QString("上传操作结束")));
-    qDebug() << "mainThreadExitedOrNot状态" << mainThreadExitedOrNot;
-    if(subOfAuto) tftpRequest = nullptr;
+    protocalFileSocket->close();
 }
 
 void UploadThread::makeLUR(){
@@ -211,17 +156,6 @@ void UploadThread::makeLUR(){
         LUR.close();
     }
     free(LUR_struct.Hfile);
-//    LUR.write((char *)&LUR_struct.file_len, sizeof(LUR_struct.file_len));
-//    LUR.write(LUR_struct.Pro_ver, sizeof(LUR_struct.Pro_ver));
-//    LUR.write((char *)&LUR_struct.Header_num, sizeof(LUR_struct.Header_num));
-//    for(int i = 0; i < LUR_struct.Header_num; i++){
-//        LUR.write((char *)&LUR_struct.Hfile[i].len_name, sizeof(LUR_struct.Hfile[i].len_name));
-//        LUR.write(LUR_struct.Hfile[i].name, LUR_struct.Hfile[i].len_name);
-//        LUR.write((char *)&LUR_struct.Hfile[i].load_part_len_name, sizeof(LUR_struct.Hfile[i].load_part_len_name));
-//        LUR.write(LUR_struct.Hfile[i].load_part_name, LUR_struct.Hfile[i].load_part_len_name);
-//    }
-//    LUR.close();
-//    free(LUR_struct.Hfile);
 }
 
 void UploadThread::makeLUH()
@@ -331,96 +265,51 @@ void UploadThread::makeLUH()
 }
 
 
-File_LUS* UploadThread::parseLUS(QFile* fLUS)
+void UploadThread::parseStatusFile()
 {
-    if(fLUS->open(QIODevice::ReadOnly) == false){
-        return nullptr;
+    free(LUS.hfiles);
+    QFile fLUS(QString("%1/%2.LUS").arg(dir.dirName()).arg(device->getName()));
+    if(fLUS.open(QIODevice::ReadOnly) == false){
+        return;
     }
-    File_LUS *LUS = (File_LUS*)malloc(sizeof(File_LUS));
-    memset(LUS, 0, sizeof(File_LUS));
-    QDataStream in(fLUS);
+    memset(&LUS, 0, sizeof(File_LUS));
+    QDataStream in(&fLUS);
 #ifdef BIG_ENDIAN
         in.setByteOrder(QDataStream::BigEndian);
 #else
         in.setByteOrder(QDataStream::LittleEndian);
 #endif
 
-    in >> LUS->file_len;
-    in >> LUS->Pro_ver;
-    in >> LUS->op_stat_code;
-    in >> LUS->stat_des_len;
-    in.readRawData(LUS->stat_des, LUS->stat_des_len);
-    in >> LUS->counter;
-    in >> LUS->excep_timer;
-    in >> LUS->estim_timer;
-    in.readRawData(LUS->load_list_ratio, 3);
-    in >> LUS->hfile_num;
-    if(LUS->hfile_num > 0) LUS->hfiles = (struct Hfile_info_LUS*)malloc(sizeof(Hfile_info_LUS) * LUS->hfile_num);
-    for(int i = 0; i < LUS->hfile_num; ++i){
-        in >> LUS->hfiles[i].fileLen;
-        in >> LUS->hfiles[i].Hfile_name_len;
-        in.readRawData(LUS->hfiles[i].Hfile_name, LUS->hfiles[i].Hfile_name_len + 1);
-        in >> LUS->hfiles[i].load_part_num_name_len;
-        in.readRawData(LUS->hfiles[i].load_part_num_name, LUS->hfiles[i].load_part_num_name_len + 1);
-        in.readRawData(LUS->hfiles[i].load_ratio, 3);
-        in >> LUS->hfiles[i].load_stat;
-        in >> LUS->hfiles[i].load_stat_des_len;
-        in.readRawData(LUS->hfiles[i].load_stat_des, LUS->hfiles[i].load_stat_des_len + 1);
+    in >> LUS.file_len;
+    in.readRawData(LUS.Pro_ver, 2);
+    in >> LUS.op_stat_code;
+    in >> LUS.stat_des_len;
+    in.readRawData(LUS.stat_des, LUS.stat_des_len);
+    in >> LUS.counter;
+    in >> LUS.excep_timer;
+    in >> LUS.estim_timer;
+    in.readRawData(LUS.load_list_ratio, 3);
+    in >> LUS.hfile_num;
+    if(LUS.hfile_num > 0) LUS.hfiles = (struct Hfile_info_LUS*)malloc(sizeof(Hfile_info_LUS) * LUS.hfile_num);
+    for(int i = 0; i < LUS.hfile_num; ++i){
+        in >> LUS.hfiles[i].fileLen;
+        in >> LUS.hfiles[i].Hfile_name_len;
+        in.readRawData(LUS.hfiles[i].Hfile_name, LUS.hfiles[i].Hfile_name_len + 1);
+        in >> LUS.hfiles[i].load_part_num_name_len;
+        in.readRawData(LUS.hfiles[i].load_part_num_name, LUS.hfiles[i].load_part_num_name_len + 1);
+        in.readRawData(LUS.hfiles[i].load_ratio, 3);
+        in >> LUS.hfiles[i].load_stat;
+        in >> LUS.hfiles[i].load_stat_des_len;
+        in.readRawData(LUS.hfiles[i].load_stat_des, LUS.hfiles[i].load_stat_des_len + 1);
 
-        qDebug() << LUS->hfiles[i].Hfile_name_len << LUS->hfiles[i].Hfile_name << LUS->hfiles[i].load_part_num_name_len << LUS->hfiles[i].load_part_num_name
-                 << LUS->hfiles[i].load_ratio << LUS->hfiles[i].load_stat << LUS->hfiles[i].load_stat_des_len << LUS->hfiles[i].load_stat_des;
+//        qDebug() << LUS.hfiles[i].Hfile_name_len << LUS.hfiles[i].Hfile_name << LUS.hfiles[i].load_part_num_name_len << LUS.hfiles[i].load_part_num_name
+//                 << LUS.hfiles[i].load_ratio << LUS.hfiles[i].load_stat << LUS.hfiles[i].load_stat_des_len << LUS.hfiles[i].load_stat_des;
     }
+    fLUS.close();
+    std::unique_lock<std::mutex> lock(m);
+    flag = true;
+    cv.notify_one();
+    emit(parseStatusFileFinished(LUS));
+    return;
+}
 
-//    LUS->file_len = data[0] + ((uint32)data[1] << 8) + ((uint32)data[2] << 16) + ((uint32)data[3] << 24);
-//    LUS->Pro_ver = data[4] + ((uint16)data[5] << 8);
-//    LUS->op_stat_code = data[6] + ((uint16)data[7] << 8);
-//    LUS->stat_des_len = data[8];
-//    strcpy(LUS->stat_des, QString::fromStdString(data.mid(9, LUS->stat_des_len).toStdString()).toUtf8().data());
-//    memcpy(LUS->load_list_ratio, data.data() + 9 + LUS->stat_des_len + 6, 3);
-    qDebug() << LUS->stat_des << LUS->load_list_ratio;
-    fLUS->close();
-    return LUS;
-}
-void UploadThread::rcvStatusCodeAndMessageSlot(quint16 statusCode, QString statusMessage, bool error, QString errorMessage)
-{
-//    qDebug() << "rcvStatusCodeAndMessageSlot thread id" << QThread::currentThreadId();
-//    conditionMutex.lock();
-//    this->statusMessage = statusMessage;
-//    this->statusCode = statusCode;
-//    emit(uploadStatusMessage(statusMessage));
-//    if(error == true){
-//        status = ERROR;
-//        this->errorMessage = errorMessage;
-//    }
-//    else{
-//        switch (this->statusCode) {
-//        case 0x0001:
-//            status = SEND_LUR_WRQ;
-//            break;
-//        case 0x0002:
-//            status = WAIT_FILE_RRQ;
-//            break;
-//        case 0x0003:
-//            emit(uploadStatusMessage(QString("设备%1上传完成").arg(device->getName())));
-//            emit(uploadResult(true));
-//            status = END;
-//            break;
-//        case 0x1003:
-//            status = ERROR;
-//            break;
-//        case 0x1004:
-//            status = ERROR;
-//            break;
-//        case 0x1005:
-//            status = ERROR;
-//            break;
-//        default:
-//            status = ERROR;
-//            errorMessage = QString(tr("未定义状态码错误"));
-//            break;
-//        }
-//    }
-//    statusFileRcved = true;
-//    statusFileRcvedConditon.wakeOne();
-//    conditionMutex.unlock();
-}

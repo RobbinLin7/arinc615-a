@@ -24,13 +24,13 @@ public:
         delete fileList;
     }
 private:
-    enum status_set{SEND_LNO_RRQ, WAIT_LNL_WRQ, SEND_LNA_WRQ, WAIT_FILE, END, ERROR} status;
+    enum status_set{SEND_LNO_RRQ, WAIT_LNS_WRQ, WAIT_LNL_WRQ, SEND_LNA_WRQ, WAIT_FILE, END, ERROR} status;
     QList<QPair<QString, QString>> *fileList;
     bool fileListReadable = false;
     QStringList checkedFileList;
     QString errorMessage;
     QString statusMessage;
-    quint16 statusCode;
+    unsigned short statusCode;
     unsigned int waitTimes;
     unsigned short totalFileNum = 0;
     unsigned short transmitFileNum = 1;
@@ -41,6 +41,10 @@ signals:
     void sendFileList(QList<QPair<QString, QString>>*);
     void oDownloadStatusMessage(QString);
     void oDownloadRate(int, bool);
+
+    // MyThread interface
+public slots:
+    void parseStatusFile();
 };
 
 #endif // ODOWNLOADTHREAD_H

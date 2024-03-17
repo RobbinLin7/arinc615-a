@@ -29,8 +29,8 @@ public:
     const Device *getDevice() const;
 protected:
     const Device* device;
-    QUdpSocket* tftpClient;
-    QUdpSocket* tftpServer;
+    std::shared_ptr<QUdpSocket> protocalFileSocket;
+    std::shared_ptr<QUdpSocket> statusFileSocket;
     TftpRequest* tftpRequest;
     QString statusMessage;
     QString errorMessage;
@@ -47,9 +47,9 @@ private:
 signals:
     void threadFinish(bool status, QString info);
     void mainThreadExitedSignal();
-
 public slots:
     void mainThreadExited();
+    virtual void parseStatusFile() = 0;
 };
 
 #endif // MYTHREAD_H

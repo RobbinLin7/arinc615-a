@@ -50,6 +50,7 @@ SOURCES += \
     thread/waitthread.cpp \
     topology/createtopologyxml.cpp
 HEADERS += \
+    AFDX/AfdxHead.h \
     LEDLight/ledlight.h \
     Log.h \
     crc/crc.h \

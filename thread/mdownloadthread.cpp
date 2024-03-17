@@ -223,3 +223,8 @@ void MDownloadThread::rcvStatusCodeAndMessageSlot(quint16 statusCode, unsigned s
     statusFileRcvedConditon.wakeOne();
     conditionMutex.unlock();
 }
+
+void MDownloadThread::parseStatusFile()
+{
+
+}

@@ -53,7 +53,7 @@ private slots:
     void on_pushButton_2_clicked();
     void on_checkBox_toggled(bool checked);
 public slots:
-    void on_LUS_received(File_LUS* LUS);
+    void on_LUS_received(File_LUS LUS);
 signals:
     void beginUploadBtnClicked(QStringList pathList);
     void uploadStatusMsg(QString message, QString fileName);

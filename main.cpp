@@ -10,7 +10,7 @@ size_t max_retrans_times = 5;
 size_t wait_time_ms = 2000;
 size_t max_find_response_time_ms = 1000;
 size_t state_file_send_interval = 10000;
-unsigned short blksize_default = 512;
+unsigned short blksize_default = 1024;
 unsigned short timeout_default = 2;
 unsigned short maxRetransmit_default = 5;
 Log logger("./log/a.txt");
