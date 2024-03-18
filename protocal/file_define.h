@@ -258,7 +258,7 @@ struct File_LNR{
 
 struct File_LNS{
     uint32 file_len;//文件长度
-    uint16 Pro_ver;//协议版本号
+    char Pro_ver[2];//协议版本号
     uint16 op_stat_code;//下载状态码
     unsigned char stat_des_len;//下载状态描述长度
     char stat_des[255];//下载状态描述

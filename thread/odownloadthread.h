@@ -3,6 +3,8 @@
 #include <QObject>
 #include "mythread.h"
 #include <QtEndian>
+#include <mutex>
+#include <condition_variable>
 
 class ODownloadThread : public MyThread
 {
@@ -14,7 +16,7 @@ public:
             checkedFileList = fileList;
             this->fileListReadable = true;
         }
-        status = SEND_LNO_RRQ;
+        status = INITIALIZATION;
     }
     void run() override;
     static File_LNS* parseLNS(QFile* fLNS);
@@ -24,7 +26,7 @@ public:
         delete fileList;
     }
 private:
-    enum status_set{SEND_LNO_RRQ, WAIT_LNS_WRQ, WAIT_LNL_WRQ, SEND_LNA_WRQ, WAIT_FILE, END, ERROR} status;
+    enum status_set{INITIALIZATION, LIST_TRANSFER, TRANSFER, END, ERROR} status;
     QList<QPair<QString, QString>> *fileList;
     bool fileListReadable = false;
     QStringList checkedFileList;
@@ -34,6 +36,11 @@ private:
     unsigned int waitTimes;
     unsigned short totalFileNum = 0;
     unsigned short transmitFileNum = 1;
+    std::mutex mutex;
+    std::condition_variable variable;
+    bool initToListTransfer = false;
+    File_LNS LNS;
+
 public slots:
     void receiveCheckedFiles(QStringList checkedFileList);
     void rcvStatusCodeAndMessageSlot(quint16 statusCode, unsigned short totalFileNum, QString statusMessage, bool error, QString errorMessage);
@@ -41,6 +48,7 @@ signals:
     void sendFileList(QList<QPair<QString, QString>>*);
     void oDownloadStatusMessage(QString);
     void oDownloadRate(int, bool);
+    void parseStatusFileFinished(File_LNS);
 
     // MyThread interface
 public slots:

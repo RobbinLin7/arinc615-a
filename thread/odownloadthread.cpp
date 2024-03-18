@@ -13,7 +13,7 @@ void ODownloadThread::run()
     const unsigned short DLP_retry = 2;
     while(status != END){
         switch(status){
-        case SEND_LNO_RRQ:
+        case INITIALIZATION:
             while(!Tftp::get(protocalFileSocket.get(), dir.dirName(), QString("%1.LNO").arg(device->getName()), &errorMessage, QHostAddress(device->getHostAddress()), TFTP_SERVER_PORT) &&
                   ++tries < DLP_retry + 1){
                 emit(oDownloadStatusMessage(errorMessage));
@@ -23,10 +23,33 @@ void ODownloadThread::run()
                 status = ERROR;
                 break;
             }
-            status = WAIT_LNS_WRQ;
+            status = INITIALIZATION;
             break;
-        case WAIT_LNS_WRQ:
-            status = WAIT_LNL_WRQ;
+        case LIST_TRANSFER:
+             std::unique_lock<std::mutex> locker(mutex);
+             variable.wait(locker, [this]{return initToListTransfer;
+             });
+             if(tftpRequest->mutex.tryLock(13 * 1000) == false){
+                 status = ERROR;
+                 errorMessage = QString("等待LNL写请求超时");
+                 break;
+             }
+             QByteArray request = tftpRequest->getRequest();
+             quint16 port = tftpRequest->getPort();
+             tries = 0;
+             while(!Tftp::handlePut(protocalFileSocket.get(), dir.dirName(), QString("%1.LNL").arg(device->getName()), &errorMessage, QHostAddress(device->getHostAddress()), port, request) &&
+                   ++tries < DLP_retry + 1){
+                 emit(oDownloadStatusMessage(errorMessage));
+             }
+             if(tries >= DLP_retry + 1){
+                 emit(oDownloadStatusMessage("超过DLP重传次数"));
+                 status = ERROR;
+                 break;
+             }
+
+
+
+             
             break;
         case WAIT_LNL_WRQ:{
             if(tftpRequest->mutex.tryLock(13 * 1000) == false){
@@ -344,9 +367,70 @@ void ODownloadThread::rcvStatusCodeAndMessageSlot(quint16 statusCode, unsigned s
     conditionMutex.unlock();
 }
 
+
+//struct File_LNS{
+//    uint32 file_len;//文件长度
+//    char Pro_ver[2];//协议版本号
+//    uint16 op_stat_code;//下载状态码
+//    unsigned char stat_des_len;//下载状态描述长度
+//    char stat_des[255];//下载状态描述
+//    uint16 counter;//计数器
+//    uint16 excep_timer;//等待时长
+//    uint16 estim_timer;//估计时长
+//    char down_list_ratio[3];//列表下载完成比率
+//    uint16 file_num;//头文件数量
+//    struct file_info_LNS *LNS_files;//头文件列表
+//};
+
+
+//typedef struct file_info_LNS{
+//    unsigned char file_name_len;//文件名长度
+//    char file_name[255];//文件名
+//    uint16 file_stat;//文件状态
+//    unsigned char file_stat_des_len;//文件状态描述长度
+//    char file_stat_des[255];//文件状态描述
+//}HINFO_LNS;
+
+
 void ODownloadThread::parseStatusFile()
 {
+    free(LNS.LNS_files);
+    QFile fLNS(QString("%1/%2.LNS").arg(dir.dirName()).arg(device->getName()));
+    if(fLNS.open(QIODevice::ReadOnly) == false){
+        return;
+    }
+    memset(&LNS, 0, sizeof(File_LNS));
+    QDataStream in(&fLNS);
+    in.setByteOrder(QDataStream::LittleEndian);
 
+    in >> LNS.file_len;
+    in.readRawData(LNS.Pro_ver, 2);
+    in >> LNS.op_stat_code;
+    in >> LNS.stat_des_len;
+    in.readRawData(LNS.stat_des, LNS.stat_des_len);
+    in >> LNS.counter;
+    in >> LNS.excep_timer;
+    in >> LNS.estim_timer;
+    in.readRawData(LNS.down_list_ratio, 3);
+    in >> LNS.file_num;
+    if(LNS.file_num > 0) LNS.LNS_files = (struct file_info_LNS*)malloc(sizeof(file_info_LNS) * LNS.file_num);
+    for(int i= 0; i < LNS.file_num; i++){
+        in >> LNS.LNS_files[i].file_name_len;
+        in.readRawData(LNS.LNS_files[i].file_name, 255);
+        in >> LNS.LNS_files[i].file_stat;
+        in >> LNS.LNS_files[i].file_stat_des_len;
+        in.readRawData(LNS.LNS_files[i].file_stat_des, 255);
+    }
+    fLNS.close();
+    emit(parseStatusFileFinished(LNS));
+
+    std::unique_lock<std::mutex> locker(mutex);
+    if(LNS.op_stat_code == 0x0001){
+        locker.unlock();
+        variable.notify_one();
+    }else {
+        locker.unlock();
+    }
 }
 
 
