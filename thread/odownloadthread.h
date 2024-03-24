@@ -17,22 +17,24 @@ public:
             this->fileListReadable = true;
         }
         status = INITIALIZATION;
+        memset(&LNS, 0, sizeof(LNS));
     }
     void run() override;
     static File_LNS* parseLNS(QFile* fLNS);
-    File_LNL* parseLNL(const QByteArray data);
+    File_LNL* parseLNL(QFile* file);
     void makeLNA();
     ~ODownloadThread(){
         delete fileList;
     }
 private:
     enum status_set{INITIALIZATION, LIST_TRANSFER, TRANSFER, END, ERROR} status;
-    QList<QPair<QString, QString>> *fileList;
+    QList<QPair<QString, QString>> *fileList = new QList<QPair<QString, QString>>();
     bool fileListReadable = false;
     QStringList checkedFileList;
     QString errorMessage;
     QString statusMessage;
     unsigned short statusCode;
+    int downloadFilesCount = 0;
     unsigned int waitTimes;
     unsigned short totalFileNum = 0;
     unsigned short transmitFileNum = 1;
@@ -40,6 +42,9 @@ private:
     std::condition_variable variable;
     bool initToListTransfer = false;
     File_LNS LNS;
+//    File_LNL* struct_LNL;
+
+
 
 public slots:
     void receiveCheckedFiles(QStringList checkedFileList);
@@ -52,7 +57,7 @@ signals:
 
     // MyThread interface
 public slots:
-    void parseStatusFile();
+    void parseStatusFile() override;
 };
 
 #endif // ODOWNLOADTHREAD_H

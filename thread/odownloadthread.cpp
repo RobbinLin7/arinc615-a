@@ -23,12 +23,22 @@ void ODownloadThread::run()
                 status = ERROR;
                 break;
             }
-            status = INITIALIZATION;
+            status = LIST_TRANSFER;
             break;
         case LIST_TRANSFER:
-             std::unique_lock<std::mutex> locker(mutex);
-             variable.wait(locker, [this]{return initToListTransfer;
-             });
+           {
+//             std::unique_lock<std::mutex> locker(mutex);
+////             variable.wait(locker, [this]{return initToListTransfer;
+////             });
+//             while (initToListTransfer == false) {
+//                variable.wait(locker);
+//             };
+//             initToListTransfer = false;
+//             qDebug() << "操作码为" << LNS.op_stat_code;
+//             if(LNS.op_stat_code != 0x0001){
+//                 break;
+//             }//TODO
+
              if(tftpRequest->mutex.tryLock(13 * 1000) == false){
                  status = ERROR;
                  errorMessage = QString("等待LNL写请求超时");
@@ -36,6 +46,7 @@ void ODownloadThread::run()
              }
              QByteArray request = tftpRequest->getRequest();
              quint16 port = tftpRequest->getPort();
+             QString fileName = request.mid(2).split('\0').at(0);
              tries = 0;
              while(!Tftp::handlePut(protocalFileSocket.get(), dir.dirName(), QString("%1.LNL").arg(device->getName()), &errorMessage, QHostAddress(device->getHostAddress()), port, request) &&
                    ++tries < DLP_retry + 1){
@@ -46,36 +57,96 @@ void ODownloadThread::run()
                  status = ERROR;
                  break;
              }
+             emit(oDownloadStatusMessage("LNL文件接收完成"));
+//             qDebug() << device->getName();
+//             qDebug() << dir.dirName();
+//             qDebug() << fileName;
+             QFile LNL(QString("%1/%2.LNL").arg(dir.dirName(), device->getName()));
+             if(LNL.open(QIODevice::ReadOnly) == false){
+                 status = ERROR;
+                 errorMessage = QString("LNL文件打开失败");
+                 break;
+             }else {
+                 File_LNL *struct_LNL = parseLNL(&LNL);
+                 if(struct_LNL->file_num == 0){
+                     free(&LNL);
+                     free(struct_LNL);
+                     status = ERROR;
+                     errorMessage = QString("没有文件可供用户自定义下载");
+                     break;
+                 }
+                 for(int i = 0; i < struct_LNL->file_num; i++){
+                     QPair<QString, QString> pair;
+                     pair.first = struct_LNL->file[i].file_name;
+                     pair.second = struct_LNL->file[i].file_stat_des;
+                     fileList->push_back(pair);
+                 }
+                 free(struct_LNL);
+                 emit(sendFileList(fileList));
+                 emit(oDownloadStatusMessage(QString("LNL文件解析成功")));
+             }
+             //等待用户选择要下载的文件
+             unsigned int waitTimes = 0;
+             while (!mainThreadExitedOrNot && !fileListReadable && waitTimes < 1000 ) {
+                 QThread::msleep(200);
+                 waitTimes++;
+             }
+             qDebug() << fileListReadable;
+             qDebug() << mainThreadExitedOrNot;
+             if(!fileListReadable){
+                 status = ERROR;
+                 errorMessage = QString("选择时间过长，请重新操作");
+                 break;
+             }
+             if(mainThreadExitedOrNot){
+                 status = ERROR;
+                 errorMessage = QString("主线程已经退出");
+                 break;
+             }
+             makeLNA();
+             emit(oDownloadStatusMessage(QString("LNA文件生成成功")));
+             //发送LNA文件写请求
+             if(!Tftp::put(protocalFileSocket.get(), dir.dirName(), QString("%1.LNA").arg(device->getName()), &errorMessage, QHostAddress(device->getHostAddress()), TFTP_SERVER_PORT)){
+                 status = ERROR;
+                 break;
+             }
+             status = TRANSFER;
+             break;
+          }
 
-
-
-             
-            break;
-        case WAIT_LNL_WRQ:{
-            if(tftpRequest->mutex.tryLock(13 * 1000) == false){
-                status = ERROR;
-                errorMessage = QString("等待LNL写请求超时");
-                break;
-            }
-            QByteArray request = tftpRequest->getRequest();
+        case TRANSFER:
+        {
+//            if(tftpRequest->mutex.tryLock(13 * 1000) == false){
+//                status = ERROR;
+//                errorMessage = QString("等待数据文件读请求超时");
+//                break;
+//            }//设置等待数据读取请求的时间
+            QByteArray writeRequest = tftpRequest->getRequest();
             quint16 port = tftpRequest->getPort();
-            tries = 0;
-            while(!Tftp::handlePut(protocalFileSocket.get(), dir.dirName(), QString("%1.LNL").arg(device->getName()), &errorMessage, QHostAddress(device->getHostAddress()), port, request) &&
-                  ++tries < DLP_retry + 1){
-                emit(oDownloadStatusMessage(errorMessage));
+            QString fileName = writeRequest.mid(2).split('\0').at(0);
+
+//            qDebug() << writeRequest;
+//            qDebug() << fileName;
+//            qDebug() << port;
+            while (checkedFileList.contains(fileName) && downloadFilesCount < checkedFileList.size()) {
+                if(!Tftp::handlePut(protocalFileSocket.get(), dir.dirName(), fileName, &errorMessage, QHostAddress(device->getHostAddress()), port, writeRequest)){
+                     status = ERROR;
+                     errorMessage = QString("");
+                     break;
+                }
+                downloadFilesCount++;
+                emit(oDownloadStatusMessage(QString("文件%1下载完成").arg(fileName)));
+                writeRequest = tftpRequest->getRequest();
+                fileName = writeRequest.mid(2).split('\0').at(0);
+                //TODO 进度条
             }
-            if(tries >= DLP_retry + 1){
-                emit(oDownloadStatusMessage("超过DLP重传次数"));
-                status = ERROR;
-                break;
-            }
-            emit(oDownloadStatusMessage("LNL文件接收完成"));
             status = END;
             break;
         }
         case ERROR:
             emit(oDownloadStatusMessage("用户定义下载操作异常结束"));
             status = END;
+            break;
         case END:
             break;
         }
@@ -227,103 +298,71 @@ void ODownloadThread::run()
 //    }
 }
 
-File_LNS *ODownloadThread::parseLNS(QFile* fLNS)
-{
-//    File_LNS *LNS = (File_LNS*)malloc(sizeof(File_LNS));
-//    //LNS->file_len = data[0] + ((quint32)data[1] << 8) + ((uint32)data[2] << 16) + ((uint32)data[3] << 24);
-//    memcpy(&LNS->file_len, data.mid(0, 4).data(), sizeof(LNS->file_len));
-//    //LNS->Pro_ver = data[4] + ((quint16)data[5] << 8);
-//    memcpy(&LNS->Pro_ver, data.mid(4, 2).data(), sizeof(LNS->Pro_ver));
-//    //LNS->op_stat_code = data[6] + ((quint16)data[7] << 8);
-//    memcpy(&LNS->op_stat_code, data.mid(6, 2).data(), sizeof(LNS->op_stat_code));
-//    //LNS->stat_des_len = data[8];
-//    memcpy(&LNS->stat_des_len, data.mid(8, 1).data(), sizeof(unsigned char));
-//    strcpy(LNS->stat_des, QString::fromStdString(data.mid(9, LNS->stat_des_len).toStdString()).toUtf8().data());
-//    size_t pos = 9 + sizeof(LNS->stat_des);
-//    //LNS->counter = ((quint16)data[pos] << 8) + data[pos + 1];
-//    memcpy(&LNS->counter, data.mid(pos, 2).data(), sizeof(LNS->counter));
-//    pos += 2;
-//    //LNS->excep_timer = ((quint16)data[pos] << 8) + data[pos + 1];
-//    memcpy(&LNS->excep_timer, data.mid(pos, 2).data(), sizeof(LNS->excep_timer));
-//    pos += 2;
-//    //LNS->estim_timer = ((quint16)data[pos] << 8) + data[pos + 1];
-//    memcpy(&LNS->estim_timer, data.mid(pos, 2).data(), sizeof(LNS->estim_timer));
-//    pos += 2;
-//    memcpy(LNS->down_list_ratio, data.mid(pos, 3).data(), 3);
-//    pos += 3;
-//    //LNS->file_num = (quint16)data[pos] + ((quint16)data[pos + 1] << 8);
-//    memcpy(&LNS->file_num, data.mid(pos, 2).data(), sizeof(LNS->file_num));
-//    pos += 2;
-//    LNS->LNS_files = (file_info_LNS *)malloc(sizeof(file_info_LNS) * LNS->file_num);
-//    for(int i = 0; i < LNS->file_num; i++){
-//        //LNS->LNS_files[i].file_name_len = (unsigned char)data[pos++];
-//        memcpy(&LNS->LNS_files[i].file_name_len, data.mid(pos, 1).data(), sizeof(unsigned char));
-//        pos++;
-//        strcpy(LNS->LNS_files[i].file_name, data.mid(pos, LNS->LNS_files[i].file_name_len).data());
-//        //pos += sizeof(LNS->LNS_files[i].file_name);
-//        pos += 255;
-//        //LNS->LNS_files[i].file_stat = ((quint16)data[pos] << 8) + data[pos + 1];
-//        memcpy(&LNS->LNS_files[i].file_stat, data.mid(pos, 2).data(), sizeof(LNS->LNS_files[i].file_stat));
-//        pos += 2;
-//        //LNS->LNS_files[i].file_stat_des_len = (unsigned char)data[pos++];
-//        memcpy(&LNS->LNS_files[i].file_stat_des_len, data.mid(pos, 1).data(), sizeof(unsigned char));
-//        pos++;
-//        strcpy(LNS->LNS_files[i].file_stat_des, data.mid(pos, LNS->LNS_files[i].file_stat_des_len).data());
-//        //pos += sizeof(LNS->LNS_files[i].file_stat_des);
-//        pos += 255;
-//    }
-//    return LNS;
-}
 
-File_LNL *ODownloadThread::parseLNL(const QByteArray data)
+File_LNL *ODownloadThread::parseLNL(QFile* file)
 {
-    File_LNL *LNL = (File_LNL*)malloc(sizeof(File_LNL));
-    LNL->file_len = data[0] + ((quint32)data[1] << 8) + ((uint32)data[2] << 16) + ((uint32)data[3] << 24);
-    LNL->Pro_ver = data[4] + ((quint16)data[5] << 8);
-    LNL->file_num = data[6] + ((quint16)data[7] << 8);
-    LNL->file = (file_info_LNL*)malloc(sizeof(file_info_LNL) * LNL->file_num);
-    memset(LNL->file, 0, sizeof(file_info_LNL) * LNL->file_num);
-    unsigned int pos = 8;
-    for(int i = 0; i < LNL->file_num; i++){
-        LNL->file[i].file_name_len = data[pos++];
-        strcpy(LNL->file[i].file_name, data.mid(pos, LNL->file[i].file_name_len));
-        //pos += sizeof(LNL->file[i].file_name);
-        pos += 255;
-        LNL->file[i].file_stat_des_len = data[pos++];
-        strcpy(LNL->file[i].file_stat_des, data.mid(pos, LNL->file[i].file_stat_des_len));
-        //pos += sizeof(LNL->file[i].file_stat_des);
-        pos += 255;
-    }
-    return LNL;
+      File_LNL* struct_LNL = new File_LNL();
+      memset(struct_LNL, 0, sizeof(File_LNL));
+      QDataStream in(file);
+
+#ifdef BIG_ENDIAN
+      in.setByteOrder(QDataStream::BigEndian);
+#else
+      in.setByteOrder(QDataStream::LittleEndian);
+#endif
+
+      in >> struct_LNL->file_len;
+      in.readRawData(struct_LNL->Pro_ver, 2);
+      in >> struct_LNL->file_num;
+      if(struct_LNL->file_num == 0){
+          emit(oDownloadStatusMessage(QString("LNL文件解析失败，总数为0")));
+      }
+      struct_LNL->file = (struct file_info_LNL*)malloc(sizeof(file_info_LNL) * struct_LNL->file_num);
+      for(int i = 0; i < struct_LNL->file_num; i++){
+          in >> struct_LNL->file[i].file_name_len;
+          in.readRawData( struct_LNL->file[i].file_name, 255);
+          in >> struct_LNL->file[i].file_stat_des_len;
+          in.readRawData( struct_LNL->file[i].file_stat_des, 255);
+      }
+
+      file->close();
+      return struct_LNL;
 }
 
 void ODownloadThread::makeLNA()
 {
-    File_LNA *LNA_struct = (File_LNA*)malloc(sizeof (File_LNA));
-    LNA_struct->file_len = sizeof (LNA_struct->file_len) + sizeof (LNA_struct->Pro_ver) + sizeof(LNA_struct->file_num);
-    LNA_struct->file_num = checkedFileList.size();
-    LNA_struct->file = (Hfile_info*)malloc(sizeof (Hfile_info) * LNA_struct->file_num);
-    memcpy(LNA_struct->Pro_ver, Protocol_ver, 2);
-    for(int i = 0; i < LNA_struct->file_num; i++){
-        LNA_struct->file_len += sizeof(LNA_struct->file[i].len_name) + sizeof(LNA_struct->file[i].name);
-        LNA_struct->file[i].len_name = checkedFileList.at(i).size();
-        strcpy(LNA_struct->file[i].name, checkedFileList.at(i).toUtf8().data());
+    File_LNA* struct_LNA = new File_LNA();
+    struct_LNA->file_len = 8 + sizeof(file_info_LNA) * checkedFileList.size();
+    memcpy(struct_LNA->Pro_ver, Protocol_ver, 2);
+//    struct_LNA -> file_len =  TODO
+    struct_LNA->file_num = checkedFileList.size();
+    struct_LNA->file = ( struct file_info_LNA*)malloc(sizeof (file_info_LNA) * checkedFileList.count());
+    for(int i = 0; i < checkedFileList.size(); i++){
+        strcpy(struct_LNA->file[i].file_name, checkedFileList.at(i).toUtf8().data());
+        struct_LNA -> file[i].file_name_len = checkedFileList.at(i).size();
     }
     QFile LNA(QString("%1/%2.LNA").arg(dir.dirName(), device->getName()));
-    if(LNA.open(QIODevice::WriteOnly)){
-        LNA.write((char*)&LNA_struct->file_len, sizeof (LNA_struct->file_len));
-//        qToBigEndian(LNA_struct->Pro_ver, &LNA_struct->Pro_ver);
-        LNA.write(LNA_struct->Pro_ver, sizeof(LNA_struct->Pro_ver));
-        LNA.write((char*)&LNA_struct->file_num, sizeof(LNA_struct->file_num));
-        for(int i = 0; i < LNA_struct->file_num; i++){
-            LNA.write((char*)&LNA_struct->file[i].len_name, sizeof(LNA_struct->file[i].len_name));
-            LNA.write(LNA_struct->file[i].name, 255);
-            LNA.write((char*)&LNA_struct->file[i].load_part_len_name, sizeof(LNA_struct->file[i].len_name));
-            LNA.write(LNA_struct->file[i].load_part_name, 512);
-        }
-        LNA.close();
+    if(LNA.open(QIODevice::WriteOnly) == false){
+        status = ERROR;
+        errorMessage = QString("LNA文件生成错误");
+        return;
     }
-    free(LNA_struct);
+    QDataStream out(&LNA);
+#ifdef BIG_ENDIAN
+    out.setByteOrder(QDataStream::BigEndian);
+#else
+    out.setByteOrder(QDataStream::LittleEndian);
+#endif
+
+    out << struct_LNA->file_len;
+    out.writeRawData(struct_LNA->Pro_ver, 2);
+    out << struct_LNA->file_num;
+    for(int i = 0; i < struct_LNA->file_num; i++){
+        out << struct_LNA->file[i].file_name_len;
+        out.writeRawData(struct_LNA->file[i].file_name, 255);
+    }
+    LNA.close();
+    free(struct_LNA);
 }
 
 void ODownloadThread::receiveCheckedFiles(QStringList checkedFileList)
@@ -334,67 +373,45 @@ void ODownloadThread::receiveCheckedFiles(QStringList checkedFileList)
 
 void ODownloadThread::rcvStatusCodeAndMessageSlot(quint16 statusCode, unsigned short totalFileNum, QString statusMessage, bool error, QString errorMessage)
 {
-    this->statusMessage = statusMessage;
-    this->statusCode = statusCode;
-    this->totalFileNum = totalFileNum;
-    conditionMutex.lock();
-    emit(oDownloadStatusMessage(statusMessage));
-    if(error == true){
-        status = ERROR;
-        this->errorMessage = errorMessage;
-    }
-    else{
-        switch (this->statusCode) {
-        case 0x0001:
-            status = WAIT_LNL_WRQ;
-            break;
-        case 0x0002:
-            status = WAIT_FILE;
-            break;
-        case 0x0003:
-            status = END;
-            emit(oDownloadStatusMessage(QString("设备%1下载完成.").arg(device->getName())));
-            emit(threadFinish(true, "用户定义下载完成"));
-            break;
-        default:
-            status = ERROR;
-            errorMessage = QString(tr("状态码未定义"));
-            break;
-        }
-    }
-    statusFileRcved = true;
-    statusFileRcvedConditon.wakeOne();
-    conditionMutex.unlock();
+//    this->statusMessage = statusMessage;
+//    this->statusCode = statusCode;
+//    this->totalFileNum = totalFileNum;
+//    conditionMutex.lock();
+//    emit(oDownloadStatusMessage(statusMessage));
+//    if(error == true){
+//        status = ERROR;
+//        this->errorMessage = errorMessage;
+//    }
+//    else{
+//        switch (this->statusCode) {
+//        case 0x0001:
+//            status = WAIT_LNL_WRQ;
+//            break;
+//        case 0x0002:
+//            status = WAIT_FILE;
+//            break;
+//        case 0x0003:
+//            status = END;
+//            emit(oDownloadStatusMessage(QString("设备%1下载完成.").arg(device->getName())));
+//            emit(threadFinish(true, "用户定义下载完成"));
+//            break;
+//        default:
+//            status = ERROR;
+//            errorMessage = QString(tr("状态码未定义"));
+//            break;
+//        }
+//    }
+//    statusFileRcved = true;
+//    statusFileRcvedConditon.wakeOne();
+//    conditionMutex.unlock();
 }
 
-
-//struct File_LNS{
-//    uint32 file_len;//文件长度
-//    char Pro_ver[2];//协议版本号
-//    uint16 op_stat_code;//下载状态码
-//    unsigned char stat_des_len;//下载状态描述长度
-//    char stat_des[255];//下载状态描述
-//    uint16 counter;//计数器
-//    uint16 excep_timer;//等待时长
-//    uint16 estim_timer;//估计时长
-//    char down_list_ratio[3];//列表下载完成比率
-//    uint16 file_num;//头文件数量
-//    struct file_info_LNS *LNS_files;//头文件列表
-//};
-
-
-//typedef struct file_info_LNS{
-//    unsigned char file_name_len;//文件名长度
-//    char file_name[255];//文件名
-//    uint16 file_stat;//文件状态
-//    unsigned char file_stat_des_len;//文件状态描述长度
-//    char file_stat_des[255];//文件状态描述
-//}HINFO_LNS;
 
 
 void ODownloadThread::parseStatusFile()
 {
-    free(LNS.LNS_files);
+//    free(LNS.LNS_files);
+    qDebug() << "进入ODownload线程的parseStatusFile";
     QFile fLNS(QString("%1/%2.LNS").arg(dir.dirName()).arg(device->getName()));
     if(fLNS.open(QIODevice::ReadOnly) == false){
         return;
@@ -404,7 +421,7 @@ void ODownloadThread::parseStatusFile()
     in.setByteOrder(QDataStream::LittleEndian);
 
     in >> LNS.file_len;
-    in.readRawData(LNS.Pro_ver, 2);
+    in >> LNS.Pro_ver;
     in >> LNS.op_stat_code;
     in >> LNS.stat_des_len;
     in.readRawData(LNS.stat_des, LNS.stat_des_len);
@@ -424,13 +441,17 @@ void ODownloadThread::parseStatusFile()
     fLNS.close();
     emit(parseStatusFileFinished(LNS));
 
-    std::unique_lock<std::mutex> locker(mutex);
-    if(LNS.op_stat_code == 0x0001){
-        locker.unlock();
-        variable.notify_one();
-    }else {
-        locker.unlock();
-    }
+//    std::unique_lock<std::mutex> locker(mutex);
+//    initToListTransfer = true;
+//    variable.notify_one();
+    qDebug() << "完成ODownload线程的parseStatusFile";
+    return;
+//    if(LNS.op_stat_code == 0x0001){
+//        locker.unlock();
+//        variable.notify_one();
+//    }else {
+//        locker.unlock();
+//    }
 }
 
 

@@ -31,15 +31,13 @@ void ProgressDialog::setProgress(Hfile_info_LUS *hfiles, int num)
 {
     int count = 0;
     for(int i = 0; i < num; ++i){
-        //qDebug() << hfiles[i].Hfile_name;
-        int progress = 0;
+        unsigned progress = 0;
         for(int j = 0; j < 3; ++j){
             progress = progress * 10 + hfiles[i].load_ratio[j] - '0';
         }
         if(progress == 100) ++count;
         for(int j = 0; j < ui->listWidget->count(); ++j){
             ProgressWidget* progressWidget = (ProgressWidget*)ui->listWidget->itemWidget(ui->listWidget->item(j));
-            qDebug() << hfiles[i].Hfile_name << progressWidget->getFileName();
             if(progressWidget->getFileName().toStdString() == std::string(hfiles[i].Hfile_name)){
                 progressWidget->updateProgressBar(progress);
                 progressWidget->updateStatus(hfiles[i].load_stat);

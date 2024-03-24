@@ -241,7 +241,7 @@ typedef struct file_info_LNS{
 
 struct File_LND{
     uint32 file_len;//文件大小
-    uint16 Pro_ver;//协议版本号
+    char Pro_ver[2];//协议版本号
     uint16 status_flag;//状态标志码
     unsigned char stat_des_len;//状态描述长度
     char stat_des[255];//状态描述
@@ -258,7 +258,7 @@ struct File_LNR{
 
 struct File_LNS{
     uint32 file_len;//文件长度
-    char Pro_ver[2];//协议版本号
+    uint16 Pro_ver;//协议版本号
     uint16 op_stat_code;//下载状态码
     unsigned char stat_des_len;//下载状态描述长度
     char stat_des[255];//下载状态描述
@@ -280,9 +280,14 @@ typedef struct file_info_LNL{
     char file_stat_des[255];//文件状态描述
 }HINFO_LNL;
 
+struct file_info_LNA{
+    unsigned char file_name_len;//文件名长度
+    char file_name[255];//文件名
+};
+
 struct File_LNO{
     uint32 file_len;//文件大小
-    uint16 Pro_ver;//协议版本号
+    char Pro_ver[2];//协议版本号
     uint16 status_flag;//状态标志码
     unsigned char stat_des_len;//状态描述长度
     char stat_des[255];//状态描述
@@ -290,7 +295,7 @@ struct File_LNO{
 
 struct File_LNL{
     uint32 file_len;//文件长度
-    uint16 Pro_ver;//协议版本号
+    char Pro_ver[2];//协议版本号
     uint16 file_num;//文件个数
     struct file_info_LNL *file;//文件信息
 };
@@ -299,7 +304,7 @@ struct File_LNA{
     uint32 file_len;//文件长度
     char Pro_ver[2];//协议版本号
     uint16 file_num;//文件个数
-    struct Hfile_info *file;//文件信息
+    struct file_info_LNA *file;//文件信息
 };
 
 #pragma pack()

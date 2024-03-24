@@ -8,7 +8,7 @@ extern unsigned short maxRetransmit_default;
 //unsigned short Tftp::blksize = blksize_default;
 //unsigned short Tftp::timeout = timeout_default;
 
-QByteArray Tftp::makeTftpReadRequest(QString fileName, QString mode, quint16 valueOfBlockSize, quint16 valueOfTimeOut, quint16 maxRetransmit)
+QByteArray Tftp::makeTftpReadRequest(QString fileName, quint16 valueOfBlockSize, quint16 valueOfTimeOut, quint16 maxRetransmit, QString mode)
 {
     QByteArray request;
     //1.opcode
@@ -39,7 +39,7 @@ QByteArray Tftp::makeTftpReadRequest(QString fileName, QString mode, quint16 val
 }
 
 
-QByteArray Tftp::makeTftpWriteRequest(QString fileName, QString mode, quint16 valueOfBlockSize, quint16 valueOfTimeOut, quint16 maxRetransmit)
+QByteArray Tftp::makeTftpWriteRequest(QString fileName, quint16 valueOfBlockSize, quint16 valueOfTimeOut, quint16 maxRetransmit, QString mode)
 {
     QByteArray request;
     //1.opcode
@@ -173,7 +173,7 @@ QByteArray Tftp::makeTftpOAck(std::initializer_list<std::pair<std::string, std::
 
 bool Tftp::put(QUdpSocket *uSock, QString path, QString fileName, QString *errorMessage, const QHostAddress &address, quint16 port)
 {
-    QByteArray wrq = makeTftpWriteRequest(fileName);
+    QByteArray wrq = makeTftpWriteRequest(fileName, blksize_default, timeout_default, maxRetransmit_default);
     QByteArray oack, ack;
     quint16 newPort;
     unsigned short retrans_times = 0;
@@ -228,7 +228,7 @@ bool Tftp::put(QUdpSocket *uSock, QString path, QString fileName, QString *error
 
 bool Tftp::get(QUdpSocket *uSock, QString path, QString fileName, QString *errorMessage, const QHostAddress& host, quint16 port)
 {
-    QByteArray readRequest = makeTftpReadRequest(fileName);
+    QByteArray readRequest = makeTftpReadRequest(fileName, blksize_default, timeout_default, maxRetransmit_default);
     QByteArray response, ack;
     quint16 newPort;
     unsigned short blksize = blksize_default, timeout = timeout_default, maxRetransmit = maxRetransmit_default;
@@ -339,7 +339,7 @@ bool Tftp::handlePut(QUdpSocket *uSock, QString path, QString fileName, QString 
                                    std::make_pair(std::string("timeout"), std::to_string(timeout)),
                                    std::make_pair(std::string("max-retransmit"), std::to_string(maxRetransmit))
                                    });
-
+    qDebug() << oAck;
     uSock->writeDatagram(oAck, host, port);
     return download(uSock, path, fileName, errorMessage, host, port, blksize, timeout, maxRetransmit, oAck);
 }
@@ -481,7 +481,8 @@ bool Tftp::upload(QUdpSocket *uSock, QString path, QString fileName, QString *er
      QByteArray previousPacket;
      QByteArray ack;
      ack.resize(4);
-     char* data = new char[blksize];
+     char* data = new char[blksize + 4];
+
      unsigned short trans_times = 0;
      unsigned short dataLen = 0;
      unsigned short blockNo = 1;
@@ -491,14 +492,17 @@ bool Tftp::upload(QUdpSocket *uSock, QString path, QString fileName, QString *er
         return false;
      }
      do{
-         dataLen = file.read(data, blksize);
-         QByteArray dataWaitforTransferPacket = makeTftpData(data, dataLen, blockNo);
-         uSock->writeDatagram(dataWaitforTransferPacket, host, port);
+         dataLen = file.read(data + 4, blksize);
+         makeTftpData(data, blockNo);
+         //QByteArray dataWaitforTransferPacket = makeTftpData(data, dataLen, blockNo);
+         uSock->writeDatagram(data, dataLen + 4, host, port);
+         //uSock->writeDatagram(data, host, port);
          trans_times = 1;
-         previousPacket = dataWaitforTransferPacket;
+         //previousPacket = dataWaitforTransferPacket;
          while(1){
              while(!uSock->waitForReadyRead(timeout * 1000) && trans_times < maxRetransmit + 1){
-                 uSock->writeDatagram(previousPacket, host, port);
+                 //uSock->writeDatagram(previousPacket, host, port);
+                 uSock->writeDatagram(data, dataLen + 4, host, port);
                  ++trans_times;
              }
              if(uSock->pendingDatagramSize() <= 0 && trans_times >= maxRetransmit + 1){
@@ -509,7 +513,8 @@ bool Tftp::upload(QUdpSocket *uSock, QString path, QString fileName, QString *er
                  uSock->readDatagram(ack.data(), uSock->pendingDatagramSize());
              }
              if(checkAckNo(ack, blockNo)) break;
-             uSock->writeDatagram(previousPacket, host, port);
+             //uSock->writeDatagram(previousPacket, host, port);
+             uSock->writeDatagram(data, dataLen + 4, host, port);
              ++trans_times;
          }
 
@@ -548,6 +553,17 @@ QByteArray Tftp::makeTftpData(char data[], int len, quint16 block){
     //3.data
     tftpData.append(data, len);
     return tftpData;
+}
+
+char *Tftp::makeTftpData(char data[], quint16 block)
+{
+    data[0] = '\0';
+    data[1] = 3;
+
+    data[2] = block >> 8;
+    data[3] = block;
+
+    return data;
 }
 
 

@@ -5,6 +5,8 @@
 #include <QHostAddress>
 #include <QUdpSocket>
 #include <cstring>
+#include <condition_variable>
+#include <mutex>
 #include "globalDefine.h"
 #include "device.h"
 #include "mythread.h"
@@ -13,7 +15,7 @@ class UploadThread : public MyThread
 {
     Q_OBJECT
 public:
-    UploadThread(QStringList fileList, const Device* device, TftpRequest* tftpRequest, bool subOfAuto = false, QObject *parent = 0):
+    UploadThread(QStringList fileList, const Device* device, TftpRequest* tftpRequest, QObject *parent = 0):
         MyThread(device, tftpRequest, parent), fileList(fileList){
         status = INITIALIZATION;
         memset(&LUS, 0, sizeof(LUS));
@@ -33,6 +35,9 @@ private:
     unsigned int fileSentCnt = 0;
     unsigned int waitTimes = 0;
     File_LUS LUS;
+    std::condition_variable cv;
+    std::mutex m;
+    volatile bool flag = false;
 signals:
     void parseStatusFileFinished(File_LUS);
 public slots:

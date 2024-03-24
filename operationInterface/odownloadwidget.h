@@ -35,12 +35,16 @@ private:
     unsigned int &threadsCnt;
     unsigned int finishedThreadCnt = 0;
     QWidget *parent;
+    std::shared_ptr<ProgressDialog> progressDialog;
+    File_LNS LNS;
 private slots:
     void receiveFileList(QList<QPair<QString, QString>> *fileList);
     void downloadBtnClikcked();
     void selectAllFilesOrNot(bool checked);
     void radioChecked(bool checked);
     void transmitODLNSDes(QString msg, QString deviceName);
+public slots:
+    void on_LNS_received(File_LNS LNS);
 signals:
     void filesChecked(QStringList fileList);
     void ODownloadFinish();

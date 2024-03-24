@@ -773,6 +773,8 @@ void MainWindow::tftpServerTftpReadReady()
         //在每个数据包前插入两字节的端口号
         tftpServer->readDatagram(datagram.data(), datagram.size(), &remote, &port);
         fileName = datagram.mid(2).split('\0').at(0);
+//        qDebug() << remote;
+        qDebug() << fileName;
         int i;
         for(i = 0; i < threads.size(); i++){
             if(remote == threads.at(i)->getHostAddress()){
@@ -783,15 +785,15 @@ void MainWindow::tftpServerTftpReadReady()
                     connect((StatusFileRcvThread*)statusFileRcvThread, &StatusFileRcvThread::statusFileRcvFinishedSignal, threads.at(i), &MyThread::parseStatusFile);
                     if(fileName.endsWith(".LUS")){
                         connect((UploadThread*)threads.at(i), &UploadThread::parseStatusFileFinished, mUploadWidget.get(), &UploadWidget::on_LUS_received);
+                    }else if(fileName.endsWith(".LNS")){
+                        connect((ODownloadThread*)threads.at(i), &ODownloadThread::parseStatusFileFinished, mODownloadWidget.get(), &ODownloadWidget::on_LNS_received);
                     }
                     pool.start(statusFileRcvThread);
                     statusFileRcvThread->setAutoDelete(true);
                 }
                 else{
-                    //qDebug() << "fileName:" << fileName;
                     tftpRequest = threads.at(i)->getTftpRequest();
                     tftpRequest->setRequestAndPort(datagram, port);
-                    qDebug() << "port = " << port << "1";
                     tftpRequest->mutex.tryLock();
                     tftpRequest->mutex.unlock();
                 }

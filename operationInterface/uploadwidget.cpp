@@ -76,13 +76,9 @@ bool UploadWidget::beginUpload()
         if(deviceList->at(i)->checkedOrNot()){
             MyThread* thread = new UploadThread(fileSelected, deviceList->at(i)->getDevice(), new TftpRequest());
             threads.append(thread);
-            //threads[threadsCnt] = new UploadThread(fileSelected, deviceList->at(i)->getDevice(), new TftpRequest(), this);
-            //这里可以连接信号槽
             const Device *device = deviceList->at(i)->getDevice();
             QString name = device->getName();
             deviceList->at(i)->setProgress(0);
-            //void (DeviceInfoWidget::*setProgress1)(const int&) = &DeviceInfoWidget::setProgress;
-            //connect((UploadThread*)thread, &UploadThread::uploadRate, deviceList->at(i), (newSetProgressType)&DeviceInfoWidget::setProgress);
             connect((UploadThread*)thread, &UploadThread::uploadStatusMessage, this, [=](QString message){
                 emit(uploadStatusMsg(message, deviceList->at(i)->getDevice()->getName() + ':' +
                                      deviceList->at(i)->getDeviceIP()));
@@ -161,11 +157,20 @@ void UploadWidget::on_checkBox_toggled(bool checked)
 
 void UploadWidget::on_LUS_received(File_LUS LUS)
 {
-    int progress = 0;
+    unsigned progress = 0;
     for(int i = 0; i < 3; i++){
         progress = progress * 10 + LUS.load_list_ratio[i] - '0';
     }
-    deviceList->at(0)->setProgress(progress);
+    MyThread* thread = dynamic_cast<MyThread*>(sender());
+    if(thread != nullptr){
+        for(const auto& device: *deviceList){
+            if(device->getDeviceIP() == thread->getHostAddress().toString()){
+                device->setProgress(progress);
+                break;
+            }
+        }
+    }
+    //deviceList->at(0)->setProgress(progress);
     if(LUS.hfile_num > 0){
         progressDialog->setProgress(LUS.hfiles, LUS.hfile_num);
     }

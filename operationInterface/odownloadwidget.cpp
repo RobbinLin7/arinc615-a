@@ -67,6 +67,41 @@ void ODownloadWidget::transmitODLNSDes(QString msg, QString deviceName)
     emit sendODLNSStatusDes(msg, deviceName);
 }
 
+void ODownloadWidget::on_LNS_received(File_LNS LNS)
+{
+//    unsigned progress = 0;
+//    for(int i = 0; i < 3; i++){
+//        progress = progress * 10 + LNS.down_list_ratio[i] - '0';
+//    }
+//    MyThread* thread = dynamic_cast<MyThread*>(sender());
+//    if(thread != nullptr){
+//        for(const auto& device: *deviceList){
+//            if(device->getDeviceIP() == thread->getHostAddress().toString()){
+//                device->setProgress(progress);
+//                break;
+//            }
+//        }
+//    }
+//    //deviceList->at(0)->setProgress(progress);
+//    if(LNS.file_num > 0){
+
+//    }
+    unsigned progress = 50;
+//    for(int i = 0; i < 3; i++){
+//        progress = progress * 10 + LNS.down_list_ratio - '0';
+//    }
+    MyThread* thread = dynamic_cast<MyThread*>(sender());
+    if(thread != nullptr){
+        for(const auto& device: *deviceList){
+            if(device->getDeviceIP() == thread->getHostAddress().toString()){
+                device->setProgress(progress);
+                break;
+            }
+        }
+    }
+
+}
+
 void ODownloadWidget::receiveFileList(QList<QPair<QString, QString> > *fileList)
 {
     for(int i = 0; i < fileList->size(); i++){
