@@ -24,7 +24,7 @@ public:
         delete fileList;
     }
 private:
-    enum status_set{SEND_LNO_RRQ, WAIT_LNS_WRQ, WAIT_LNL_WRQ, SEND_LNA_WRQ, WAIT_FILE, END, ERROR} status;
+    enum status_set{SEND_LNO_RRQ, WAIT_LNS_WRQ, WAIT_LNL_WRQ, SEND_LNA_WRQ, WAIT_FILE, END, ERROR_} status;
     QList<QPair<QString, QString>> *fileList;
     bool fileListReadable = false;
     QStringList checkedFileList;

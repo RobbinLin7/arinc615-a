@@ -24,7 +24,7 @@ public:
     void makeLUR();
     void makeLUH();
     static File_LUS* parseLUS(QFile*);
-    enum status_set{INITIALIZATION, LIST_TRANSEFER, TRANSFER, END, ERROR} status;
+    enum status_set{INITIALIZATION, LIST_TRANSEFER, TRANSFER, END, ERROR_} status;
 signals:
     void uploadResult(bool);
     void uploadStatusMessage(QString);

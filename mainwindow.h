@@ -33,7 +33,9 @@
 #include "dir.h"
 #include "thread/statusfilercvthread.h"
 #include "protocal/findRequest.h"
-#include "thread/waitthread.h"
+#include "spdlog/sinks/stdout_color_sinks.h"
+#include "spdlog/sinks/rotating_file_sink.h"
+#include "spdlog/sinks/qt_sinks.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -109,10 +111,8 @@ private:
     void saveLog();
     QByteArray makeFindRequest();                   //构造FIND请求报文
     void disableAllExceptCurrentOperation(const unsigned int& op_code);
-
+    void initLogger();
     void waitForAllWorkingThreadsDone();
-
-    std::shared_ptr<WaitThread> waitThread = nullptr;
 
     QVector<DeviceInfoWidget *> mDevicesList;       //存放设备列表
 
@@ -176,15 +176,13 @@ private:
 
     std::shared_ptr<ParaConfigDialog> getParaConfigDialogInstance();
 
+    std::shared_ptr<spdlog::sinks::stdout_color_sink_mt> console_sink;
 
+    std::shared_ptr<spdlog::sinks::qt_color_sink_mt> qt_sink;
 
-    //QUdpSocket* tftpClient = 0;
+    std::shared_ptr<spdlog::sinks::rotating_file_sink_mt> file_sink;
 
-    //QList<QList<QByteArray>*> datagramFromAllDevices;
-
-    //QList<TftpRequest *> tftpRequests;
-
-    //a615_targets_find_list_t findList;
+    spdlog::logger* logger;
 
     unsigned int threadsCnt = 0;
 

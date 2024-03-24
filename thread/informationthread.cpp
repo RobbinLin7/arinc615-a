@@ -2,6 +2,8 @@
 #include <QDir>
 #include<QDebug>
 #include<iostream>
+#include "spdlog/spdlog.h"
+
 
 
 void InformationThread::run(){
@@ -18,15 +20,18 @@ void InformationThread::run(){
         switch (status) {
         case SEND_LCI_RRQ:
             if(!Tftp::get(protocalFileSocket.get(), dir.dirName(), QString("%1.LCI").arg(device->getName()), &errorMessage, QHostAddress(device->getHostAddress()), TFTP_SERVER_PORT)){
-                status = ERROR;
+                status = ERROR_;
                 break;
             }
             status = WAIT_LCL_WRQ;
+            //std::string str("LCI发送完成");
+            SPDLOG_LOGGER_DEBUG(&logger, "LCI发送完成");
+            //logger.log(spdlog::level::debug, "LCI发送完成");
             emit(informationStatusMessage(QString(tr("LCI发送完成"))));
             break;
         case WAIT_LCL_WRQ:
             if(tftpRequest->mutex.tryLock(13 * 1000) == false){
-                status = ERROR;
+                status = ERROR_;
                 errorMessage = QString("等待LCL写请求超时");
                 break;
             }
@@ -37,7 +42,7 @@ void InformationThread::run(){
             fileName = request.mid(2).split('\0').at(0);
             if(fileName.split('.').size() == 2 && fileName.split('.').at(1) == "LCL"){
                 if(!Tftp::handlePut(protocalFileSocket.get(), dir.dirName(), fileName, &errorMessage, QHostAddress(device->getHostAddress()), port, request)){
-                    status = ERROR;
+                    status = ERROR_;
                     break;
                 }
                 qDebug() << "LNL receive complete";
@@ -47,11 +52,11 @@ void InformationThread::run(){
                 status = END;
             }
             else{
-                status = ERROR;
+                status = ERROR_;
                 errorMessage = QString("收到非LCL文件请求");
             }
             break;
-        case ERROR:
+        case ERROR_:
             status = END;
             emit(informationStatusMessage(errorMessage));
             emit(informationStatusMessage(QString("设备%1信息操作失败").arg(device->getName())));

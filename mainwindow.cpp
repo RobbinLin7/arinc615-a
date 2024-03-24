@@ -1,18 +1,45 @@
-﻿#define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_TRACE//必须定义这个宏,才能输出文件名和行号
+﻿//#define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_TRACE//必须定义这个宏,才能输出文件名和行号
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 #include "ui_configwidget.h"
 #include "mainwindow.h"
-#include "Log.h"
-
+#include "spdlog/spdlog.h"
 #include <QDebug>
 #include <QDateTime>
 #include <QMessageBox>
-
+#include "mylog.h"
+#include "singleton/singleton.h"
 
 
 using namespace GlobalDefine;
 
+
+
+void MainWindow::initLogger(){
+    auto max_size = 1048576 * 5;
+    auto max_files = 3;
+    qt_sink = std::make_shared<spdlog::sinks::qt_color_sink_mt>(ui->logTextEdit, 1000, false, true);
+    qt_sink->set_level(spdlog::level::trace);
+    qt_sink->set_pattern("[%Y-%m-%d %H:%M:%S][process:%P][thread: %t][%s:%#][%l][%n], %v");
+
+    //spdlog::sinks::qt_color_sink_mt<>()
+    console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
+    console_sink->set_level(spdlog::level::trace);
+    console_sink->set_pattern("[%Y-%m-%d %H:%M:%S][process:%P][thread: %t][%s:%#][%l][%n], %v");
+
+    file_sink = std::make_shared<spdlog::sinks::rotating_file_sink_mt>("logs/log.txt", max_size, max_files);
+    file_sink->set_level(spdlog::level::trace);
+    file_sink->set_pattern("[%Y-%m-%d %H:%M:%S][process:%P][thread: %t][%s:%#][%l][%n], %v");
+    //logger = std::shared_ptr<spdlog::logger>(new spdlog::logger("logger", {console_sink, file_sink}));
+    spdlog::sinks_init_list list{qt_sink, console_sink, file_sink};
+//    logger = std::make_shared<spdlog::logger>("logger", list);
+//    //logger->set_pattern("[%Y-%m-%d %H:%M:%S][process:%P][thread: %t][%s:%#][%l][%n], %v");
+//    logger->set_level(spdlog::level::debug);
+
+//    logger->log(spdlog::level::debug, "this is a text");
+    logger = &Singleton<spdlog::logger>::Instance("logger", list);
+    logger->set_level(spdlog::level::debug);
+}
 
 
 MainWindow::MainWindow(QWidget *parent)
@@ -20,6 +47,7 @@ MainWindow::MainWindow(QWidget *parent)
     , ui(new Ui::MainWindow)
 {   
     ui->setupUi(this);
+    initLogger();
     //设置线程池大小
     pool.setMaxThreadCount(maxThreadCount);
     //在发现设备前，不允许进行其它操作
@@ -65,8 +93,7 @@ MainWindow::MainWindow(QWidget *parent)
     //connect(ui->autoConfigBtn, SIGNAL(clicked()), this, SLOT(execAutoConfigOperation()));
 
     connect(ui->actionToolVersion, &QAction::triggered, this, [=](){
-        QMessageBox::about(this,"About ARINC615ATool","ARINC615ATool V1.1.1(2024-3-xx) \n新增特性\n"
-                                                       );
+        QMessageBox::about(this,"About ARINC615ATool","ARINC615ATool V1.1.1(2024-3-xx) \n新增特性\n");
     });
 
     connect(ui->paraConfigAction, &QAction::triggered, this, &MainWindow::execParaConfigOperation);
@@ -385,29 +412,6 @@ int MainWindow::createDeviceWidget(const Device& device)
     widgetItem->setSizeHint(QSize(MAX_LIST_WIDGET_WIDTH, MAX_LIST_WIDGET_HEIGHT));
     ui->deviceListWidget->addItem(widgetItem);
     ui->deviceListWidget->setItemWidget(widgetItem, deviceInfo);
-
-//    //初始化设备列表
-//    for(int i = 0; i < devices->size(); i++)
-//    {
-
-//        DeviceInfoWidget *deviceInfo = new DeviceInfoWidget(this, &devices->at(i));
-//        //填入相关信息
-
-//        //存入vector
-//        this->mDevicesList << deviceInfo;
-
-//        connect(deviceInfo, &DeviceInfoWidget::radioBtnChecked, this, &MainWindow::on_radio_toggled);
-//    }
-
-//    //将设备列表加载到list widget
-//    for(int i = 0; i < deviceNum; i++)
-//    {
-//        QListWidgetItem *widgetItem = new QListWidgetItem();
-//        widgetItem->setSizeHint(QSize(MAX_LIST_WIDGET_WIDTH, MAX_LIST_WIDGET_HEIGHT));
-//        ui->deviceListWidget->addItem(widgetItem);
-//        ui->deviceListWidget->setItemWidget(widgetItem, this->mDevicesList.at(i));
-//    }
-
     return FUNC_RETUEN_SUCCESS;
 }
 
@@ -450,41 +454,43 @@ void MainWindow::clearDeviceList()
 //return:
 //log:8-1新增
 //==================================================================
-extern Log logger;
+
 void MainWindow::addLogToDockWidget(const int &operationCode, const QString log, const QString deviceName)
 {
-    logger.logger->debug(log.toStdString());
-    QString currentTime;
-    currentTime = QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss");
-    QString info;
-    switch(operationCode)
-    {
-    case FIND_OP_CODE:
-        info = QString("[%1]: %2").arg(FIND_OPERATION).arg(log);
-        break;
-    case INFO_OP_CODE:
-        info = QString("[%1]: %2").arg(INFORMATION_OPERATION).arg(log);
-        break;
-    case UPLOAD_OP_CODE:
-        info = QString("[%1]: %2").arg(UPLOAD_OPERATION).arg(log);
-        break;
-    case MDOWN_OP_CODE:
-        info = QString("[%1]: %2").arg(MEDIA_DOWNLOAD_OPERATION).arg(log);
-        break;
-    case ODOWN_OP_CODE:
-        info = QString("[%1]: %2").arg(OPERATOR_DOWNLOAD_OPERATION).arg(log);
-        break;
-    case AUTO_CONFIG_OP_CODE:
-        info = QString("[%1]: %2").arg(AUTO_CONFIG_OPERATION).arg(log);
-        break;
-    case PARAMETER_CONFIG_OP_CODE:
-        info = QString("[%1]: %2").arg(PARAMETER_CONFIG_OPERATION).arg(log);
-        break;
-    default:
-        break;
-    }
-    if(deviceName != "default") ui->logTextBrowser->append(currentTime + " " + deviceName + "-" +  info);
-    else ui->logTextBrowser->append(currentTime + " " + info);
+    //Singleton<spdlog::logger>::Instance().log(log.toStdString());
+    //logger.logger->debug(log.toStdString());
+    //SPDLOG_LOGGER_DEBUG(logger, log.toStdString());
+//    QString currentTime;
+//    currentTime = QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss");
+//    QString info;
+//    switch(operationCode)
+//    {
+//    case FIND_OP_CODE:
+//        info = QString("[%1]: %2").arg(FIND_OPERATION).arg(log);
+//        break;
+//    case INFO_OP_CODE:
+//        info = QString("[%1]: %2").arg(INFORMATION_OPERATION).arg(log);
+//        break;
+//    case UPLOAD_OP_CODE:
+//        info = QString("[%1]: %2").arg(UPLOAD_OPERATION).arg(log);
+//        break;
+//    case MDOWN_OP_CODE:
+//        info = QString("[%1]: %2").arg(MEDIA_DOWNLOAD_OPERATION).arg(log);
+//        break;
+//    case ODOWN_OP_CODE:
+//        info = QString("[%1]: %2").arg(OPERATOR_DOWNLOAD_OPERATION).arg(log);
+//        break;
+//    case AUTO_CONFIG_OP_CODE:
+//        info = QString("[%1]: %2").arg(AUTO_CONFIG_OPERATION).arg(log);
+//        break;
+//    case PARAMETER_CONFIG_OP_CODE:
+//        info = QString("[%1]: %2").arg(PARAMETER_CONFIG_OPERATION).arg(log);
+//        break;
+//    default:
+//        break;
+//    }
+//    if(deviceName != "default") ui->logTextBrowser->append(currentTime + " " + deviceName + "-" +  info);
+//    else ui->logTextBrowser->append(currentTime + " " + info);
 }
 
 bool MainWindow::getPortOccupied() const
@@ -559,7 +565,8 @@ void MainWindow::onTimerTimeout(){
         //mFindInfoWidget->setWindowModality(Qt::ApplicationModal);
         //mFindInfoWidget->show();
         //日志显示
-        addLogToDockWidget(FIND_OP_CODE, QString("查找到[%1]个设备").arg(deviceCnt));
+        SPDLOG_LOGGER_DEBUG(logger, QString("查找到[%1]个设备").arg(deviceCnt).toStdString());
+        //addLogToDockWidget(FIND_OP_CODE, QString("查找到[%1]个设备").arg(deviceCnt));
         //createDeviceWidget(deviceCnt, devices);
         //绘制XML
 #if 1
@@ -669,21 +676,6 @@ void MainWindow::find(int index){
 }
 
 QByteArray MainWindow::makeFindRequest(){
-//    find_req req;   //find请求
-//    memset(&req, 0, sizeof(req));
-//    req.opcode = 256;
-//    req.ASCII_String = '\0';
-//    req.Packet_Terminator = 0x10;
-//    req.tftpRetryNum = max_retrans_times;
-//    req.tftpTimeout = wait_time_ms;
-//    req.lusPeriod = state_file_send_interval;
-//    QByteArray datagram;
-//    appendBigEndian(&req.opcode, sizeof(req.opcode), datagram);
-//    datagram.append(req.ASCII_String).append(req.Packet_Terminator);
-//    appendBigEndian(&req.tftpRetryNum, sizeof(req.tftpRetryNum), datagram);
-//    appendBigEndian(&req.tftpTimeout, sizeof(req.tftpTimeout), datagram);
-//    appendBigEndian(&req.lusPeriod, sizeof(req.lusPeriod), datagram);
-//    return datagram;
     QByteArray findRequest;
     findRequest.append("\x00\x01\x00\x10", 4);
     return  findRequest;
@@ -691,8 +683,6 @@ QByteArray MainWindow::makeFindRequest(){
 
 void MainWindow::waitForAllWorkingThreadsDone()
 {
-//    waitThread = std::make_shared<WaitThread>(pool);
-//    waitThread->start();
     pool.waitForDone();
 }
 
@@ -841,9 +831,6 @@ void MainWindow::focusOnCurrentOperation(){
 
 void MainWindow::unfocusOnCurrentOperation()
 {
-    qDebug() << "threads.size =" << threads.size();
-    qDebug() << "pool.activeThreadCount =" << pool.activeThreadCount();
-    qDebug() << "pool.activeThreadCount =" << pool.activeThreadCount();
     ui->deviceListWidget->setEnabled(true);
     EnableOrdisableExceptFind(true);
     ui->actionFindOp->setEnabled(true);

@@ -16,6 +16,10 @@
 #include "protocal/file_define.h"
 #include "crc/crc.h"
 #include <QThread>
+#include "singleton/singleton.h"
+#include "mylog.h"
+#include "spdlog/spdlog.h"
+
 #define TFTP_READ_OP_CODE 1
 #define TFTP_WRITE_OP_CODE 2
 class MyThread : public QObject, public QRunnable
@@ -31,6 +35,8 @@ protected:
     const Device* device;
     std::shared_ptr<QUdpSocket> protocalFileSocket;
     std::shared_ptr<QUdpSocket> statusFileSocket;
+    spdlog::sinks_init_list list;
+    spdlog::logger& logger{Singleton<spdlog::logger>::Instance("logger", list)};
     TftpRequest* tftpRequest;
     QString statusMessage;
     QString errorMessage;

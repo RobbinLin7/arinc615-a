@@ -25,7 +25,7 @@ void UploadThread::run()
                 emit(uploadStatusMessage(errorMessage));
             }
             if(tries >= DLP_retry + 1){
-                status = ERROR;
+                status = ERROR_;
                 errorMessage = QString("请求LUI文件失败");
                 break;
             }
@@ -46,11 +46,11 @@ void UploadThread::run()
             makeLUR();
             if(!LUR.exists()){
                 errorMessage = QString("LUR文件创建失败");
-                status = ERROR;
+                status = ERROR_;
                 break;
             }
             if(!Tftp::put(protocalFileSocket.get(), dir.dirName(), QString("%1.LUR").arg(device->getName()), &errorMessage, QHostAddress(device->getHostAddress()), TFTP_SERVER_PORT)){
-                status = ERROR;
+                status = ERROR_;
                 break;
             }
             status = TRANSFER;
@@ -58,7 +58,7 @@ void UploadThread::run()
         }
         case TRANSFER:{
             if(tftpRequest->mutex.tryLock(13 * 1000) == false){
-                status = ERROR;
+                status = ERROR_;
                 errorMessage = QString("等待数据文件读请求超时");
                 break;
             }
@@ -97,7 +97,7 @@ void UploadThread::run()
             }
             break;
         }
-        case ERROR:
+        case ERROR_:
             //TODO----执行Abort操作
             emit(uploadStatusMessage(errorMessage));
             //emit(uploadResult(false));

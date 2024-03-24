@@ -1,7 +1,9 @@
 ﻿#include "mythread.h"
 
-MyThread::MyThread(const Device *device, TftpRequest *tftpRequest, QObject *parent):QObject(nullptr),
-    device(device),tftpRequest(tftpRequest){
+MyThread::MyThread(const Device *device, TftpRequest *tftpRequest, QObject *parent):
+    QObject(nullptr),
+    device(device),
+    tftpRequest(tftpRequest){
     //创建一个虚拟连接，只接受目的设备端发来的信息
     QDir tmpDir(QDir::currentPath() + "/" + device->getName() + "_" + device->getHostAddress());
     if(!tmpDir.exists()){
@@ -13,10 +15,6 @@ MyThread::MyThread(const Device *device, TftpRequest *tftpRequest, QObject *pare
 }
 
 MyThread::~MyThread(){
-//    this->tftpServer->close();
-//    this->tftpClient->close();
-//    if(tftpServer) this->tftpServer->deleteLater();
-//    if(tftpClient) this->tftpClient->deleteLater();
     if(tftpRequest) delete tftpRequest;
     qDebug() << "MyThread的析构函数\n";
 }

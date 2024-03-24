@@ -20,7 +20,7 @@ void ODownloadThread::run()
             }
             if(tries >= DLP_retry + 1){
                 emit(oDownloadStatusMessage("超过DLP重传次数"));
-                status = ERROR;
+                status = ERROR_;
                 break;
             }
             status = WAIT_LNS_WRQ;
@@ -30,7 +30,7 @@ void ODownloadThread::run()
             break;
         case WAIT_LNL_WRQ:{
             if(tftpRequest->mutex.tryLock(13 * 1000) == false){
-                status = ERROR;
+                status = ERROR_;
                 errorMessage = QString("等待LNL写请求超时");
                 break;
             }
@@ -43,14 +43,14 @@ void ODownloadThread::run()
             }
             if(tries >= DLP_retry + 1){
                 emit(oDownloadStatusMessage("超过DLP重传次数"));
-                status = ERROR;
+                status = ERROR_;
                 break;
             }
             emit(oDownloadStatusMessage("LNL文件接收完成"));
             status = END;
             break;
         }
-        case ERROR:
+        case ERROR_:
             emit(oDownloadStatusMessage("用户定义下载操作异常结束"));
             status = END;
         case END:
@@ -317,7 +317,7 @@ void ODownloadThread::rcvStatusCodeAndMessageSlot(quint16 statusCode, unsigned s
     conditionMutex.lock();
     emit(oDownloadStatusMessage(statusMessage));
     if(error == true){
-        status = ERROR;
+        status = ERROR_;
         this->errorMessage = errorMessage;
     }
     else{
@@ -334,7 +334,7 @@ void ODownloadThread::rcvStatusCodeAndMessageSlot(quint16 statusCode, unsigned s
             emit(threadFinish(true, "用户定义下载完成"));
             break;
         default:
-            status = ERROR;
+            status = ERROR_;
             errorMessage = QString(tr("状态码未定义"));
             break;
         }
