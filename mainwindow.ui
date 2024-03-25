@@ -241,9 +241,6 @@
    <widget class="QWidget" name="dockWidgetContents">
     <layout class="QHBoxLayout" name="horizontalLayout_3">
      <item>
-      <widget class="QTextEdit" name="logTextEdit"/>
-     </item>
-     <item>
       <widget class="QTextBrowser" name="logTextBrowser"/>
      </item>
     </layout>

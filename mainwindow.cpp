@@ -18,9 +18,9 @@ using namespace GlobalDefine;
 void MainWindow::initLogger(){
     auto max_size = 1048576 * 5;
     auto max_files = 3;
-    qt_sink = std::make_shared<spdlog::sinks::qt_color_sink_mt>(ui->logTextEdit, 1000, false, true);
+    qt_sink = std::make_shared<spdlog::sinks::qt_color_sink_mt>(ui->logTextBrowser, 1000, false, true);
     qt_sink->set_level(spdlog::level::trace);
-    qt_sink->set_pattern("[%Y-%m-%d %H:%M:%S][process:%P][thread: %t][%s:%#][%l][%n], %v");
+    qt_sink->set_pattern("[%Y-%m-%d %H:%M:%S]%v");
 
     //spdlog::sinks::qt_color_sink_mt<>()
     console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
@@ -134,7 +134,7 @@ void MainWindow::initMainWindow()
     layout = std::make_shared<QVBoxLayout>(ui->operationWidget);
 
     //输出日志信息
-    ui->logTextBrowser->append("等待用户操作！");
+    //ui->logTextBrowser->append("等待用户操作！");
 
     //隐藏listWidget中的横向滚动条
     ui->deviceListWidget->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
@@ -565,7 +565,10 @@ void MainWindow::onTimerTimeout(){
         //mFindInfoWidget->setWindowModality(Qt::ApplicationModal);
         //mFindInfoWidget->show();
         //日志显示
-        SPDLOG_LOGGER_DEBUG(logger, QString("查找到[%1]个设备").arg(deviceCnt).toStdString());
+        SPDLOG_LOGGER_DEBUG(logger, "[{0}][{1}]", FIND_OPERATION, QString("查找到[%1]个设备").arg(deviceCnt).toStdString());
+        //logger->debug("[{0}][{1}]", FIND_OPERATION, QString("查找到[%1]个设备").arg(deviceCnt).toStdString());
+        //logger->debug(QString("查找到[%1]个设备").arg(deviceCnt).toStdString())
+        //SPDLOG_LOGGER_DEBUG(logger, QString("查找到[%1]个设备").arg(deviceCnt).toStdString());
         //addLogToDockWidget(FIND_OP_CODE, QString("查找到[%1]个设备").arg(deviceCnt));
         //createDeviceWidget(deviceCnt, devices);
         //绘制XML

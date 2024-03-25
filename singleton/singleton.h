@@ -1,44 +1,41 @@
 #ifndef SINGLETON_H
 #define SINGLETON_H
+#include<memory>
+#include<mutex>
+#include <memory>
+#include <mutex>
+#include <iostream>
 
-template<typename T>
+template <typename T>
 class Singleton
 {
 public:
-    template <typename... Args>
-    static T& Instance(const Args&... rest)
-    {
-        //pthread_once(&ponce_, &Singleton::init);
-        if (nullptr == value_)
-        {
-            value_ = new T(rest...);
-        }
-        return *value_;
-    };
-
-    static void destroy()
-    {
-        if(nullptr != value_) {
-            delete value_;
-        }
-    }
-
-private:
-    Singleton() = delete;
-    ~Singleton() = delete;
-
     Singleton(const Singleton&) = delete;
     Singleton& operator=(const Singleton&) = delete;
 
+    template <typename... Args>
+    static T& Instance(Args&&... args)
+    {
+        std::call_once(initInstanceFlag, [&](){
+            instancePtr.reset(new T(std::forward<Args>(args)...));
+        });
+        return *instancePtr;
+    }
+
+protected:
+    Singleton() = default;
+    virtual ~Singleton() = default;
+
 private:
-    //static pthread_once_t ponce_;
-    static T*             value_;
+    static std::unique_ptr<T> instancePtr;
+    static std::once_flag initInstanceFlag;
 };
 
-//template<typename T>
-//pthread_once_t Singleton<T>::ponce_ = PTHREAD_ONCE_INIT;
+template <typename T>
+std::unique_ptr<T> Singleton<T>::instancePtr;
 
-template<typename T>
-T* Singleton<T>::value_ = nullptr;
+template <typename T>
+std::once_flag Singleton<T>::initInstanceFlag;
+
 
 #endif // SINGLETON_H

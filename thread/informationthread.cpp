@@ -4,14 +4,17 @@
 #include<iostream>
 #include "spdlog/spdlog.h"
 
-
-
 void InformationThread::run(){
+    auto debug = [&](std::string log){
+        SPDLOG_LOGGER_DEBUG(&logger, "[INFORMATION][DNAME:{0}][IP:{1}]: {2}", device->getName().toStdString(),
+                            device->getHostAddress().toStdString(), log);
+    };
     protocalFileSocket = std::make_shared<QUdpSocket>();
     if(protocalFileSocket->bind(PROTOCAL_FILE_PORT) == false){
-        qDebug() << QString("端口号%1被占用").arg(PROTOCAL_FILE_PORT);
+        debug(QString("端口号%1被占用").arg(PROTOCAL_FILE_PORT).toStdString());
         return;
     }
+
     QString errorMessage;
     QByteArray request;
     quint16 port;
@@ -24,10 +27,7 @@ void InformationThread::run(){
                 break;
             }
             status = WAIT_LCL_WRQ;
-            //std::string str("LCI发送完成");
-            SPDLOG_LOGGER_DEBUG(&logger, "LCI发送完成");
-            //logger.log(spdlog::level::debug, "LCI发送完成");
-            emit(informationStatusMessage(QString(tr("LCI发送完成"))));
+            debug("LCI发送完成");
             break;
         case WAIT_LCL_WRQ:
             if(tftpRequest->mutex.tryLock(13 * 1000) == false){
@@ -37,7 +37,6 @@ void InformationThread::run(){
             }
             request = tftpRequest->getRequest();
             port = tftpRequest->getPort();
-            qDebug() << "port = " << port << "2";
             tftpRequest->mutex.unlock();
             fileName = request.mid(2).split('\0').at(0);
             if(fileName.split('.').size() == 2 && fileName.split('.').at(1) == "LCL"){
@@ -45,8 +44,7 @@ void InformationThread::run(){
                     status = ERROR_;
                     break;
                 }
-                qDebug() << "LNL receive complete";
-                emit(informationStatusMessage(QString(tr("LCL接收完成"))));
+                debug("LCL接收完成");
                 File_LCL *LCL_struct = parseLCL();
                 emit(informationFinished(LCL_struct, device->getName(), device->getHostAddress()));
                 status = END;
@@ -58,8 +56,9 @@ void InformationThread::run(){
             break;
         case ERROR_:
             status = END;
-            emit(informationStatusMessage(errorMessage));
-            emit(informationStatusMessage(QString("设备%1信息操作失败").arg(device->getName())));
+            debug(errorMessage.toStdString());
+            debug("信息操作失败");
+            //emit(informationStatusMessage(QString("设备%1信息操作失败").arg(device->getName())));
             emit(informationFinished(NULL, device->getName(), device->getHostAddress()));
             break;
         case END:
