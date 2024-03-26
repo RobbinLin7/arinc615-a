@@ -76,7 +76,7 @@ void MDownloadThread::run()
 //            break;
 //        }
 //    }
-//    emit threadFinish(true, QString(("介质定义下载结束")));
+    emit threadFinish(true, QString(("介质定义下载结束")));
 }
 
 void MDownloadThread::makeLNR()

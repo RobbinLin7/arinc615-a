@@ -22,6 +22,8 @@ void MainWindow::initLogger(){
     qt_sink->set_level(spdlog::level::trace);
     qt_sink->set_pattern("[%Y-%m-%d %H:%M:%S]%v");
 
+
+    //std::cout << "hello world323232" << std::endl;
     //spdlog::sinks::qt_color_sink_mt<>()
     console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
     console_sink->set_level(spdlog::level::trace);
