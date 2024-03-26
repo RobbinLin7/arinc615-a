@@ -22,6 +22,22 @@ ProgressDialog::ProgressDialog(QStringList fileList, QWidget *parent) :
     }
 }
 
+ProgressDialog::ProgressDialog(QWidget *parent) :
+    QDialog(parent),
+    ui(new Ui::ProgressDialog)
+{
+    ui->setupUi(this);
+    ui->buttonBox->button(QDialogButtonBox::Ok)->setText("确定");
+    ui->buttonBox->button(QDialogButtonBox::Ok)->setEnabled(false);
+    ui->buttonBox->button(QDialogButtonBox::Cancel)->setText("取消");
+    //只有一个进度条:下载总进度
+    ProgressWidget* progressWidget = new ProgressWidget("下载总进度", this);
+    QListWidgetItem* widgetItem = new QListWidgetItem();
+    ui->listWidget->addItem(widgetItem);
+    ui->listWidget->setItemWidget(widgetItem, progressWidget);
+    widgetItem->setSizeHint(QSize(600,200));
+}
+
 ProgressDialog::~ProgressDialog()
 {
     delete ui;
@@ -46,4 +62,14 @@ void ProgressDialog::setProgress(Hfile_info_LUS *hfiles, int num)
         }
     }
     if(count == ui->listWidget->count()) ui->buttonBox->button(QDialogButtonBox::Ok)->setEnabled(true);
+}
+
+void ProgressDialog::setProgress(int progress, char* stat)
+{
+
+    ProgressWidget* progressWidget = (ProgressWidget*)ui->listWidget->itemWidget(ui->listWidget->item(1));
+    progressWidget->updateProgressBar(progress);
+    progressWidget->updateStatus(*stat);
+    if(progress == 100) ui->buttonBox->button(QDialogButtonBox::Ok)->setEnabled(true);
+
 }

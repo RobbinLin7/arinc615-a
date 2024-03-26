@@ -14,8 +14,10 @@ class ProgressDialog : public QDialog
 
 public:
     explicit ProgressDialog(QStringList fileList, QWidget *parent = nullptr);
+    explicit ProgressDialog(QWidget *parent = nullptr);
     ~ProgressDialog();
     void setProgress(Hfile_info_LUS* hfiles, int num);
+    void setProgress(int progress, char* stat);
 
 private:
     Ui::ProgressDialog *ui;

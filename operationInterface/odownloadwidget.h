@@ -37,6 +37,7 @@ private:
     QWidget *parent;
     std::shared_ptr<ProgressDialog> progressDialog;
     File_LNS LNS;
+
 private slots:
     void receiveFileList(QList<QPair<QString, QString>> *fileList);
     void downloadBtnClikcked();
