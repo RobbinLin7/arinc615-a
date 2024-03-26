@@ -15,6 +15,7 @@ void StatusFileRcvThread::run()
     }
     QByteArray request = tftpRequest->getRequest();
     quint16 port = tftpRequest->getPort();
+    qDebug() << "StatusFileRcvThread 17 PORT:" << port;
     QString fileName = request.mid(2).split('\0').at(0);
     QString statusMessage;
     const unsigned short DLP_retry = 2;

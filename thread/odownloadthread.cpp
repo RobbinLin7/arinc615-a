@@ -27,18 +27,17 @@ void ODownloadThread::run()
             break;
         case LIST_TRANSFER:
            {
-//             std::unique_lock<std::mutex> locker(mutex);
-////             variable.wait(locker, [this]{return initToListTransfer;
-////             });
-//             while (initToListTransfer == false) {
-//                variable.wait(locker);
-//             };
-//             initToListTransfer = false;
-//             qDebug() << "操作码为" << LNS.op_stat_code;
-//             if(LNS.op_stat_code != 0x0001){
-//                 break;
-//             }//TODO
-
+             std::unique_lock<std::mutex> locker(mutex);
+//             variable.wait(locker, [this]{return initToListTransfer;
+//             });
+             while (initToListTransfer == false) {
+                variable.wait(locker);
+             };
+             initToListTransfer = false;
+             qDebug() << "操作码为" << LNS.op_stat_code;
+             if(LNS.op_stat_code != 0x0001){
+                 break;
+             }
              if(tftpRequest->mutex.tryLock(13 * 1000) == false){
                  status = ERROR;
                  errorMessage = QString("等待LNL写请求超时");
@@ -91,8 +90,8 @@ void ODownloadThread::run()
                  QThread::msleep(200);
                  waitTimes++;
              }
-             qDebug() << fileListReadable;
-             qDebug() << mainThreadExitedOrNot;
+             qDebug() << "OdownloadThread 93 fileListReadabl:"<<fileListReadable;
+             qDebug() << "OdownloadThread 93 fileListReadabl:"<< mainThreadExitedOrNot;
              if(!fileListReadable){
                  status = ERROR;
                  errorMessage = QString("选择时间过长，请重新操作");
@@ -116,11 +115,11 @@ void ODownloadThread::run()
 
         case TRANSFER:
         {
-//            if(tftpRequest->mutex.tryLock(13 * 1000) == false){
-//                status = ERROR;
-//                errorMessage = QString("等待数据文件读请求超时");
-//                break;
-//            }//设置等待数据读取请求的时间
+            if(tftpRequest->mutex.tryLock(13 * 1000) == false){
+                status = ERROR;
+                errorMessage = QString("等待数据文件读请求超时");
+                break;
+            }//设置等待数据读取请求的时间
             QByteArray writeRequest = tftpRequest->getRequest();
             quint16 port = tftpRequest->getPort();
             QString fileName = writeRequest.mid(2).split('\0').at(0);
@@ -441,9 +440,9 @@ void ODownloadThread::parseStatusFile()
     fLNS.close();
     emit(parseStatusFileFinished(LNS));
 
-//    std::unique_lock<std::mutex> locker(mutex);
-//    initToListTransfer = true;
-//    variable.notify_one();
+    std::unique_lock<std::mutex> locker(mutex);
+    initToListTransfer = true;
+    variable.notify_one();
     qDebug() << "完成ODownload线程的parseStatusFile";
     return;
 //    if(LNS.op_stat_code == 0x0001){
