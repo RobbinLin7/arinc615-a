@@ -155,7 +155,7 @@ File_LNS *MDownloadThread::parseLNS()
     QFile LNS(QString("%1/%2.LNS").arg(dir.dirName(), device->getName()));
     if(!LNS.open(QIODevice::ReadOnly)){
         free(LNS_struct);
-        status = ERROR;
+        status = ERROR_;
         errorMessage = QString("LNS文件打开失败");
         return nullptr;
     }
@@ -197,7 +197,7 @@ void MDownloadThread::rcvStatusCodeAndMessageSlot(quint16 statusCode, unsigned s
     emit(mDownloadStatusMessage(statusMessage));
     conditionMutex.lock();
     if(error == true){
-        status = ERROR;
+        status = ERROR_;
         this->errorMessage = errorMessage;
     }
     else{
@@ -214,7 +214,7 @@ void MDownloadThread::rcvStatusCodeAndMessageSlot(quint16 statusCode, unsigned s
             emit(threadFinish(true, "介质定义下载完成"));
             break;
         default:
-            status = ERROR;
+            status = ERROR_;
             errorMessage = QString(tr("状态码未定义"));
             break;
         }

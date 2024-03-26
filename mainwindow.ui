@@ -222,7 +222,7 @@
   <widget class="QDockWidget" name="logDockWidget">
    <property name="minimumSize">
     <size>
-     <width>109</width>
+     <width>164</width>
      <height>150</height>
     </size>
    </property>

@@ -20,7 +20,7 @@ void ODownloadThread::run()
             }
             if(tries >= DLP_retry + 1){
                 emit(oDownloadStatusMessage("超过DLP重传次数"));
-                status = ERROR;
+                status = ERROR_;
                 break;
             }
             status = LIST_TRANSFER;
@@ -116,8 +116,13 @@ void ODownloadThread::run()
         case TRANSFER:
         {
             if(tftpRequest->mutex.tryLock(13 * 1000) == false){
+<<<<<<< HEAD
                 status = ERROR;
                 errorMessage = QString("等待数据文件读请求超时");
+=======
+                status = ERROR_;
+                errorMessage = QString("等待LNL写请求超时");
+>>>>>>> 13f19f881d90cd9ee6207c4ff6fab4f45c60ec5f
                 break;
             }//设置等待数据读取请求的时间
             QByteArray writeRequest = tftpRequest->getRequest();
@@ -139,10 +144,19 @@ void ODownloadThread::run()
                 fileName = writeRequest.mid(2).split('\0').at(0);
                 //TODO 进度条
             }
+<<<<<<< HEAD
+=======
+            if(tries >= DLP_retry + 1){
+                emit(oDownloadStatusMessage("超过DLP重传次数"));
+                status = ERROR_;
+                break;
+            }
+            emit(oDownloadStatusMessage("LNL文件接收完成"));
+>>>>>>> 13f19f881d90cd9ee6207c4ff6fab4f45c60ec5f
             status = END;
             break;
         }
-        case ERROR:
+        case ERROR_:
             emit(oDownloadStatusMessage("用户定义下载操作异常结束"));
             status = END;
             break;
@@ -372,6 +386,7 @@ void ODownloadThread::receiveCheckedFiles(QStringList checkedFileList)
 
 void ODownloadThread::rcvStatusCodeAndMessageSlot(quint16 statusCode, unsigned short totalFileNum, QString statusMessage, bool error, QString errorMessage)
 {
+<<<<<<< HEAD
 //    this->statusMessage = statusMessage;
 //    this->statusCode = statusCode;
 //    this->totalFileNum = totalFileNum;
@@ -403,6 +418,39 @@ void ODownloadThread::rcvStatusCodeAndMessageSlot(quint16 statusCode, unsigned s
 //    statusFileRcved = true;
 //    statusFileRcvedConditon.wakeOne();
 //    conditionMutex.unlock();
+=======
+    this->statusMessage = statusMessage;
+    this->statusCode = statusCode;
+    this->totalFileNum = totalFileNum;
+    conditionMutex.lock();
+    emit(oDownloadStatusMessage(statusMessage));
+    if(error == true){
+        status = ERROR_;
+        this->errorMessage = errorMessage;
+    }
+    else{
+        switch (this->statusCode) {
+        case 0x0001:
+            status = WAIT_LNL_WRQ;
+            break;
+        case 0x0002:
+            status = WAIT_FILE;
+            break;
+        case 0x0003:
+            status = END;
+            emit(oDownloadStatusMessage(QString("设备%1下载完成.").arg(device->getName())));
+            emit(threadFinish(true, "用户定义下载完成"));
+            break;
+        default:
+            status = ERROR_;
+            errorMessage = QString(tr("状态码未定义"));
+            break;
+        }
+    }
+    statusFileRcved = true;
+    statusFileRcvedConditon.wakeOne();
+    conditionMutex.unlock();
+>>>>>>> 13f19f881d90cd9ee6207c4ff6fab4f45c60ec5f
 }
 
 

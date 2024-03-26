@@ -156,6 +156,7 @@ protected:
         QString payload;
         int color_range_start = static_cast<int>(msg.color_range_start);
         int color_range_end = static_cast<int>(msg.color_range_end);
+        //payload = QString::fromLatin1(str.data(), static_cast<int>(str.size()));
         if (is_utf8_) {
             payload = QString::fromUtf8(str.data(), static_cast<int>(str.size()));
             // convert color ranges from byte index to character index.

@@ -2,9 +2,13 @@
 
 void UploadThread::run()
 {
+    auto debug = [&](std::string log){
+        SPDLOG_LOGGER_DEBUG(&logger, "[UPLOAD][DNAME:{0}][IP:{1}]: {2}", device->getName().toStdString(),
+                            device->getHostAddress().toStdString(), log);
+    };
     protocalFileSocket = std::make_shared<QUdpSocket>();
     if(protocalFileSocket->bind(PROTOCAL_FILE_PORT) == false){
-        qDebug() << QString("端口号%1被占用").arg(PROTOCAL_FILE_PORT);
+        debug(QString("端口号%1被占用").arg(PROTOCAL_FILE_PORT).toStdString());
         return;
     }
     QByteArray request;
@@ -26,13 +30,15 @@ void UploadThread::run()
                 emit(uploadStatusMessage(errorMessage));
             }
             if(tries >= DLP_retry + 1){
-                status = ERROR;
+                status = ERROR_;
                 errorMessage = QString("请求LUI文件失败");
                 break;
             }
             tries = 0;
-            emit(uploadStatusMessage(QString("LUI发送完成")));
+
+            debug("LUI发送完成");
             status = LIST_TRANSFER;
+
             break;
         case LIST_TRANSFER:{
             std::unique_lock<std::mutex> lock(m);
@@ -47,34 +53,34 @@ void UploadThread::run()
             makeLUR();
             if(!LUR.exists()){
                 errorMessage = QString("LUR文件创建失败");
-                status = ERROR;
+                status = ERROR_;
                 break;
             }
             if(!Tftp::put(protocalFileSocket.get(), dir.dirName(), QString("%1.LUR").arg(device->getName()), &errorMessage, QHostAddress(device->getHostAddress()), TFTP_SERVER_PORT)){
-                status = ERROR;
+                status = ERROR_;
                 break;
             }
+            debug("LUR文件上传完成");
             status = TRANSFER;
             break;
         }
         case TRANSFER:{
             if(tftpRequest->mutex.tryLock(13 * 1000) == false){
-                status = ERROR;
+                status = ERROR_;
                 errorMessage = QString("等待数据文件读请求超时");
                 break;
             }
             request = tftpRequest->getRequest();
             port = tftpRequest->getPort();
             fileName = request.mid(2).split('\0').at(0);
-            qDebug() << "fileName = " << fileName;
             for(int i = 0; i < fileList.size(); ++i){
                 if(fileList.at(i).contains(fileName)){
                     if(Tftp::handleGet(protocalFileSocket.get(), fileList.at(i).left(fileList.at(i).lastIndexOf('/')), fileName, &errorMessage, QHostAddress(device->getHostAddress()), port, request) == false){
-                        qDebug() << "upload file " << fileName << "error";
+                        debug("upload file " + fileName.toStdString() + " error");
                     }
                     else {
                         ++fileSentCnt;
-                        emit(uploadStatusMessage(QString("文件%1上传完成").arg(fileName)));
+                        debug(QString("文件%1上传完成").arg(fileName).toStdString());
                         emit(uploadRate(fileSentCnt * 100 / fileList.size(), true));
                     }
                     break;
@@ -98,19 +104,16 @@ void UploadThread::run()
             }
             break;
         }
-        case ERROR:
+        case ERROR_:
             //TODO----执行Abort操作
-            emit(uploadStatusMessage(errorMessage));
-            //emit(uploadResult(false));
-            //emit(uploadRate(0, false));
+            debug(errorMessage.toStdString());
             status = END;
             break;
         default:
             break;
         }
     }
-    emit(threadFinish(UPLOAD_OP_CODE, QString(tr("上传操作结束"))));
-    emit(uploadStatusMessage(QString("上传操作结束")));
+    debug("上传操作结束");
     protocalFileSocket->close();
 }
 

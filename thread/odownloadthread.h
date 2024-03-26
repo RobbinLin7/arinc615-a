@@ -27,7 +27,7 @@ public:
         delete fileList;
     }
 private:
-    enum status_set{INITIALIZATION, LIST_TRANSFER, TRANSFER, END, ERROR} status;
+    enum status_set{INITIALIZATION, LIST_TRANSFER, TRANSFER, END, ERROR_} status;
     QList<QPair<QString, QString>> *fileList = new QList<QPair<QString, QString>>();
     bool fileListReadable = false;
     QStringList checkedFileList;

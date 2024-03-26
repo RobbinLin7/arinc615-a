@@ -7,6 +7,7 @@
 #include "globalDefine.h"
 #include "device.h"
 #include "mythread.h"
+#include "spdlog/sinks/rotating_file_sink.h"
 using namespace GlobalDefine;
 class InformationThread : public MyThread
 {
@@ -20,7 +21,7 @@ public:
     void run() override;
     File_LCL* parseLCL();
 private:
-    enum status_set{SEND_LCI_RRQ, WAIT_LCL_WRQ, END, ERROR} status;
+    enum status_set{SEND_LCI_RRQ, WAIT_LCL_WRQ, END, ERROR_} status;
     File_LCS LCS;
 
 signals:

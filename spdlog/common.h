@@ -243,14 +243,14 @@ using level_t = std::atomic<int>;
 // Log level enum
 namespace level {
 enum level_enum : int {
-    trace = SPDLOG_LEVEL_TRACE,
-    debug = SPDLOG_LEVEL_DEBUG,
-    info = SPDLOG_LEVEL_INFO,
-    warn = SPDLOG_LEVEL_WARN,
-    err = SPDLOG_LEVEL_ERROR,
-    critical = SPDLOG_LEVEL_CRITICAL,
-    off = SPDLOG_LEVEL_OFF,
-    n_levels
+        trace = SPDLOG_LEVEL_TRACE,
+        debug = SPDLOG_LEVEL_DEBUG,
+        info = SPDLOG_LEVEL_INFO,
+        warn = SPDLOG_LEVEL_WARN,
+        err = SPDLOG_LEVEL_ERROR,
+        critical = SPDLOG_LEVEL_CRITICAL,
+        off = SPDLOG_LEVEL_OFF,
+        n_levels
 };
 
 #define SPDLOG_LEVEL_NAME_TRACE spdlog::string_view_t("trace", 5)

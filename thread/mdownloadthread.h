@@ -18,7 +18,7 @@ private:
     QStringList fileList;
     unsigned int waitTimes;
     QString errorMessage;
-    enum status_set{SEND_LND_RRQ, SEND_LNR_WRQ, WAIT_FILE_WRQ, END, ERROR} status;
+    enum status_set{SEND_LND_RRQ, SEND_LNR_WRQ, WAIT_FILE_WRQ, END, ERROR_} status;
     void modifyStatus(status_set fromStatus, status_set currentStatus);
 
 public slots:
