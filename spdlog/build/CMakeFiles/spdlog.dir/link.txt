@@ -1,0 +1,2 @@
+C:\Qt\Qt5.14.2\Tools\mingw730_64\bin\ar.exe qc libspdlog.a CMakeFiles/spdlog.dir/src/spdlog.cpp.obj CMakeFiles/spdlog.dir/src/stdout_sinks.cpp.obj CMakeFiles/spdlog.dir/src/color_sinks.cpp.obj CMakeFiles/spdlog.dir/src/file_sinks.cpp.obj CMakeFiles/spdlog.dir/src/async.cpp.obj CMakeFiles/spdlog.dir/src/cfg.cpp.obj CMakeFiles/spdlog.dir/src/bundled_fmtlib_format.cpp.obj
+C:\Qt\Qt5.14.2\Tools\mingw730_64\bin\ranlib.exe libspdlog.a
